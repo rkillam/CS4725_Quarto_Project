@@ -1,0 +1,2 @@
+This is the optimized version of Quarto in C.
+It reads a configuration file with a position and searches for a certain win or a move that will certainly not loose (although the result can be a draw). The latter is far more efficient. Using the latter we proved that such a move for any depth including the first move. This means that it is ALWAYS possible to keep a draw and thus it is impossible to win against a perfect player. Two perfect players will always reach a draw.
