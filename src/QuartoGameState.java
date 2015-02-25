@@ -1,9 +1,17 @@
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 
+
 public class QuartoGameState implements Iterable<QuartoGameState> {
+
+    /*
+     * TODO: We need to come up with a way to prune unreachable
+     *       game states from registeredStates, otherwise we
+     *       will likely run into a big memory usage issue.
+     */
+    private static HashMap<String, QuartoGameState> registeredStates = new HashMap<String, QuartoGameState>();
+
     public QuartoBoard board;
     public int[][] takenSquares;
     public ArrayList<int[]> freeSquares;
@@ -169,9 +177,14 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
 
                 this.nextSquare = this.squares.next();
                 QuartoGameState newState = new QuartoGameState();
+                QuartoGameState registeredState = registeredStates.get(newState.getHash());
+                if(registeredState == null) {
+                        registeredStates.put(newState.getHash(), newState);
+                }
+                registeredStates.put(newState.getHash(), newState);
                 QuartoGameTransition newTransition = new QuartoGameTransition();
                 this.curState.transitions.put(newTransition.getHashCode(), newTransition);
-                return newState;
+                return registeredStates.get(newState.getHash());
             }
 
             @Override
@@ -190,5 +203,9 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
 
     public void resetMinimax() {
 
+    }
+
+    public String getHash() {
+        return "";
     }
 }
