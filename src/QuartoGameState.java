@@ -61,7 +61,7 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
      * @param        miniAlpha
      * @param        miniBeta
      */
-    public void QuartoGameState(QuartoBoard board, int[][] takenSquares,
+    public QuartoGameState(QuartoBoard board, int[][] takenSquares,
                                 ArrayList<int[]> freeSquares, QuartoPiece[] takenPieces,
                                 ArrayList<QuartoPiece> freePieces, int maxVal, int maxAlpha,
                                 int maxBeta, int miniVal, int miniAlpha, int miniBeta) {
