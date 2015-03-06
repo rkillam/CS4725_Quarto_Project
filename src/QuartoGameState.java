@@ -15,10 +15,12 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
     public QuartoBoard board;
     public int[][] takenSquares;
     public ArrayList<int[]> freeSquares;
-    public QuartoPiece[] takenPiece;
+    public QuartoPiece[] takenPieces;
     public ArrayList<QuartoPiece> freePieces;
     public HashMap<String, QuartoGameTransition> transitions;
     public boolean estimated;
+    public final static int NUM_PIECES = 32;
+    public final static int ROW_TIMES_COL = 25;
     /**
      * Consider putting max and mini vals into some kind of struct
      */
@@ -79,7 +81,7 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
         this.takenSquares = takenSquares;
         this.freeSquares = freeSquares;
 
-        this.takenPiece = takenPieces;
+        this.takenPieces = takenPieces;
         this.freePieces = freePieces;
 
         this.maxVal = maxVal;
@@ -92,6 +94,67 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
 
         this.transitions = new HashMap<String, QuartoGameTransition>();
         this.estimated = true;
+    }
+
+    public QuartoGameState(QuartoBoard board) {
+        this.board = board;
+
+        this.freeSquares = new ArrayList<int[]>();
+        for (int i = 0; i < 5; i++) {
+            for (int j = 0; j < 5; j++) {
+                int[] temp = {i,j};
+                freeSquares.add(temp);
+            }
+        }
+
+        this.freePieces = new ArrayList<QuartoPiece>(NUM_PIECES);
+        for (int i = 0; i<NUM_PIECES; i++) {
+            freePieces.add(new QuartoPiece(i));
+        }
+
+        this.transitions = new HashMap<String, QuartoGameTransition>();
+        this.estimated = true;
+    }
+
+    public QuartoGameState(QuartoBoard board, ArrayList<int[]> freeSquares, ArrayList<QuartoPiece> freePieces) {
+
+        this.board = board;
+
+        this.freeSquares = freeSquares;
+
+        this.freePieces = freePieces;
+
+        this.transitions = new HashMap<String, QuartoGameTransition>();
+        this.estimated = true;
+    }
+
+    public QuartoGameState nextState(int[] nextSquare, QuartoPiece nextPiece) {
+        ArrayList<QuartoPiece> freePieces = new ArrayList<QuartoPiece>(32);
+
+        //deep copy of all freePieces
+        for (int i = 0; i < NUM_PIECES; i++) {
+            QuartoPiece tempPiece = this.freePieces.get(i);
+            if (tempPiece != null) {
+                freePieces.add(new QuartoPiece(tempPiece));
+            }
+        }
+        freePieces.remove(nextPiece.getPieceID());
+
+
+        //deep copy of all squares minus nextSquare
+
+        ArrayList<int[]> freeSquares = new ArrayList<int[]>(25);
+        for (int i = 0; i < ROW_TIMES_COL; i++) {
+            int[] temp = this.freeSquares.get(i);
+            if (temp != null) {
+                if (temp[0] != nextSquare[0] && temp[1] != nextSquare[1]) {
+                    freeSquares.add(i, temp.clone());
+                }
+            }
+        }
+
+        QuartoGameState newState = new QuartoGameState(new QuartoBoard(this.board), freeSquares, freePieces);
+        return newState;
     }
 
 
@@ -147,43 +210,34 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
      */
     public Iterator<QuartoGameState> iterator()
     {
-        return new Iterator<QuartoGameState>(this) {
-            private QuartoGameState curState;
-            private Iterator<QuartoGameTransition> transitions;
-            private Iterator<QuartoPiece> pieces;
-            private QuartoPiece nextPiece;
-            private Iterator<int[]> squares;
-            private int[] nextSquare;
-
-            public Iterator(QuartoGameState curState) {
-                this.curState = curState;
-                this.transitions = this.curState.transitions.values().iterator();
-                this.pieces = this.curState.freePieces.iterator();
-                this.squares = this.curState.freeSquares.iterator();
-                this.nextSquare = null;
-                this.nextPiece = null;
-            }
+        return new Iterator<QuartoGameState>() {
+            private QuartoGameState curState = QuartoGameState.this;
+            private Iterator<QuartoGameTransition> transitions = curState.transitions.values().iterator();
+            private Iterator<QuartoPiece> pieces = curState.freePieces.iterator();
+            private Iterator<int[]> squares = curState.freeSquares.iterator();
+            private QuartoPiece nextPiece = null;
+            private int[] nextSquare = null;
 
             @Override
             public QuartoGameState next() {
-                if(this.transitions.hasNext()) {
-                    return this.transitions.next().toState;
+                if(transitions.hasNext()) {
+                    return transitions.next().toState;
                 }
 
-                if(this.nextSquare == null || !this.squares.hasNext()) {
-                    this.squares = this.curState.freeSquares.iterator();
-                    this.nextPiece = this.pieces.next();
+                if(nextSquare == null || !squares.hasNext()) {
+                    squares = curState.freeSquares.iterator();
+                    nextPiece = pieces.next();
                 }
 
-                this.nextSquare = this.squares.next();
-                QuartoGameState newState = new QuartoGameState();
+                nextSquare = squares.next();
+                QuartoGameState newState = curState.nextState(nextSquare, nextPiece);
                 QuartoGameState registeredState = registeredStates.get(newState.getHash());
                 if(registeredState == null) {
                         registeredStates.put(newState.getHash(), newState);
                 }
                 registeredStates.put(newState.getHash(), newState);
                 QuartoGameTransition newTransition = new QuartoGameTransition();
-                this.curState.transitions.put(newTransition.getHashCode(), newTransition);
+                curState.transitions.put(newTransition.getHashCode(), newTransition);
                 return registeredStates.get(newState.getHash());
             }
 

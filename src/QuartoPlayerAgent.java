@@ -7,7 +7,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
         // because super calls one of the super class constructors(you can overload constructors), you need to pass the parameters required.
         super(gameClient, stateFileName);
 
-        this.curState = new QuartoGameState();
+        this.curState = new QuartoGameState(this.quartoBoard);
         this.maxDepth = 5;
     }
 
