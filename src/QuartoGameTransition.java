@@ -1,7 +1,6 @@
 
 public class QuartoGameTransition {
 
-    public QuartoGameState fromState;
     public QuartoGameState toState;
     public QuartoPiece transitionPiece;
     public int[] transitionMove;
@@ -11,14 +10,12 @@ public class QuartoGameTransition {
     //
 
     /**
-     * @param        fromState
      * @param        toState
      * @param        transitionPiece
      * @param        transitionMove
      */
     public void QuartoGameTransition(QuartoGameState fromState, QuartoGameState toState,
                                      QuartoPiece transitionPiece, int[] transitionMove) {
-        this.fromState = fromState;
         this.toState = toState;
         this.transitionPiece = transitionPiece;
         this.transitionMove = transitionMove;
@@ -34,8 +31,7 @@ public class QuartoGameTransition {
      */
     public String getHashCode()
     {
-        return this.fromState.hashCode() + ":" +
-                this.transitionPiece.binaryStringRepresentation() + ":" +
+        return  this.transitionPiece.binaryStringRepresentation() + ":" +
                 this.transitionMove[0] + "," + this.transitionMove[1];
     }
 }

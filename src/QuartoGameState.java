@@ -13,44 +13,17 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
     private static HashMap<String, QuartoGameState> registeredStates = new HashMap<String, QuartoGameState>();
 
     public QuartoBoard board;
-    public int[][] takenSquares;
     public ArrayList<int[]> freeSquares;
-    public QuartoPiece[] takenPiece;
     public ArrayList<QuartoPiece> freePieces;
     public HashMap<String, QuartoGameTransition> transitions;
-    public boolean estimated;
     /**
      * Consider putting max and mini vals into some kind of struct
      */
-    public int maxVal = Integer.MAX_VALUE;
-    /**
-     * Consider putting max and mini vals into some kind of struct
-     */
-    public int maxAlpha;
-    /**
-     * Consider putting max and mini vals into some kind of struct
-     */
-    public int maxBeta;
-    /**
-     * Consider putting max and mini vals into some kind of struct
-     */
-    public QuartoGameTransition maxTransition;
-    /**
-     * Consider putting max and mini vals into some kind of struct
-     */
-    public int miniVal = Integer.MIN_VALUE;
-    /**
-     * Consider putting max and mini vals into some kind of struct
-     */
-    public int miniAlpha;
-    /**
-     * Consider putting max and mini vals into some kind of struct
-     */
-    public int miniBeta;
-    /**
-     * Consider putting max and mini vals into some kind of struct
-     */
-    public QuartoGameTransition miniTransition;
+    public Integer value;
+    public int alpha;
+    public int beta;
+    public boolean isMaxState;
+    public QuartoGameTransition bestMove;
 
     //
     // Methods
@@ -58,40 +31,53 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
 
     /**
      * @param        board
-     * @param        takenSquares
      * @param        freeSquares
-     * @param        takenPieces
      * @param        freePieces
-     * @param        maxVal
-     * @param        maxAlpha
-     * @param        maxBeta
-     * @param        miniVal
-     * @param        miniAlpha
-     * @param        miniBeta
+     * @param        alpha
+     * @param        beta
      */
-    public QuartoGameState(QuartoBoard board, int[][] takenSquares,
-                                ArrayList<int[]> freeSquares, QuartoPiece[] takenPieces,
-                                ArrayList<QuartoPiece> freePieces, int maxVal, int maxAlpha,
-                                int maxBeta, int miniVal, int miniAlpha, int miniBeta) {
+    public QuartoGameState(QuartoBoard board, ArrayList<int[]> freeSquares,
+                                ArrayList<QuartoPiece> freePieces, int alpha, int beta,
+                                boolean isMaxState) {
 
         this.board = board;
 
-        this.takenSquares = takenSquares;
         this.freeSquares = freeSquares;
 
-        this.takenPiece = takenPieces;
         this.freePieces = freePieces;
 
-        this.maxVal = maxVal;
-        this.maxAlpha = maxAlpha;
-        this.maxBeta = maxBeta;
+        this.alpha = alpha;
+        this.beta = beta;
 
-        this.miniVal = miniVal;
-        this.miniAlpha = miniAlpha;
-        this.miniBeta = miniBeta;
+        this.isMaxState = isMaxState;
 
         this.transitions = new HashMap<String, QuartoGameTransition>();
-        this.estimated = true;
+    }
+
+    public QuartoGameState nextState(int[] nextSquare, QuartoPiece nextPiece) {
+        ArrayList<QuartoPiece> freePieces = new ArrayList<QuartoPiece>();
+
+        //deep copy of all freePieces
+
+        for (QuartoPiece piece: this.freePieces) {
+            freePieces.add(piece);
+        }
+        freePieces.remove(nextPiece.getPieceID());
+
+
+        //deep copy of all squares minus nextSquare
+
+        ArrayList<int[]> freeSquares = new ArrayList<int[]>();
+
+        for (int[] square: this.freeSquares) {
+            if (square[0] != nextSquare[0] && square[1] != nextSquare[1]) {
+                freeSquares.add(square.clone());
+            }
+        }
+
+        QuartoGameState newState = new QuartoGameState(new QuartoBoard(this.board), freeSquares, freePieces, this.alpha,
+                this.beta, !this.isMaxState);
+        return newState;
     }
 
 
@@ -147,43 +133,34 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
      */
     public Iterator<QuartoGameState> iterator()
     {
-        return new Iterator<QuartoGameState>(this) {
-            private QuartoGameState curState;
-            private Iterator<QuartoGameTransition> transitions;
-            private Iterator<QuartoPiece> pieces;
-            private QuartoPiece nextPiece;
-            private Iterator<int[]> squares;
-            private int[] nextSquare;
-
-            public Iterator(QuartoGameState curState) {
-                this.curState = curState;
-                this.transitions = this.curState.transitions.values().iterator();
-                this.pieces = this.curState.freePieces.iterator();
-                this.squares = this.curState.freeSquares.iterator();
-                this.nextSquare = null;
-                this.nextPiece = null;
-            }
+        return new Iterator<QuartoGameState>() {
+            private QuartoGameState curState = QuartoGameState.this;
+            private Iterator<QuartoGameTransition> transitions = curState.transitions.values().iterator();
+            private Iterator<QuartoPiece> pieces = curState.freePieces.iterator();
+            private Iterator<int[]> squares = curState.freeSquares.iterator();
+            private QuartoPiece nextPiece = null;
+            private int[] nextSquare = null;
 
             @Override
             public QuartoGameState next() {
-                if(this.transitions.hasNext()) {
-                    return this.transitions.next().toState;
+                if(transitions.hasNext()) {
+                    return transitions.next().toState;
                 }
 
-                if(this.nextSquare == null || !this.squares.hasNext()) {
-                    this.squares = this.curState.freeSquares.iterator();
-                    this.nextPiece = this.pieces.next();
+                if(nextSquare == null || !squares.hasNext()) {
+                    squares = curState.freeSquares.iterator();
+                    nextPiece = pieces.next();
                 }
 
-                this.nextSquare = this.squares.next();
-                QuartoGameState newState = new QuartoGameState();
+                nextSquare = squares.next();
+                QuartoGameState newState = curState.nextState(nextSquare, nextPiece);
                 QuartoGameState registeredState = registeredStates.get(newState.getHash());
                 if(registeredState == null) {
                         registeredStates.put(newState.getHash(), newState);
                 }
                 registeredStates.put(newState.getHash(), newState);
                 QuartoGameTransition newTransition = new QuartoGameTransition();
-                this.curState.transitions.put(newTransition.getHashCode(), newTransition);
+                curState.transitions.put(newTransition.getHashCode(), newTransition);
                 return registeredStates.get(newState.getHash());
             }
 
