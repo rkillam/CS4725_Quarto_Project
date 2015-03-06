@@ -1,6 +1,9 @@
+import java.util.ArrayList;
+
 public class QuartoPlayerAgent extends QuartoAgent {
     private QuartoGameState curState;
     private int maxDepth;
+    public final static int NUM_PIECES = 32;
 
     //Example AI
     public QuartoPlayerAgent(GameClient gameClient, String stateFileName) {
@@ -8,8 +11,24 @@ public class QuartoPlayerAgent extends QuartoAgent {
         super(gameClient, stateFileName);
         setPlayerNumber();
         // if we are player number 1, our first node is max node
+
+
+        ArrayList<int[]> freeSquares = new ArrayList<int[]>();
+        for (int i = 0; i < 5; i++) {
+            for (int j = 0; j < 5; j++) {
+                int[] temp = {i,j};
+                freeSquares.add(temp);
+            }
+        }
+
+
+        ArrayList<QuartoPiece> freePieces = new ArrayList<QuartoPiece>(NUM_PIECES);
+        for (int i = 0; i<NUM_PIECES; i++) {
+            freePieces.add(new QuartoPiece(i));
+        }
+
         boolean isMax = (playerNumber == 1);
-        this.curState = new QuartoGameState(new QuartoBoard(this.quartoBoard), null, null, Integer.MIN_VALUE, Integer.MAX_VALUE, isMax);
+        this.curState = new QuartoGameState(new QuartoBoard(this.quartoBoard), freeSquares, freePieces, Integer.MIN_VALUE, Integer.MAX_VALUE, isMax);
         this.maxDepth = 5;
     }
 

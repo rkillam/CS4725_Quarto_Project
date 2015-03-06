@@ -16,7 +16,6 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
     public ArrayList<int[]> freeSquares;
     public ArrayList<QuartoPiece> freePieces;
     public HashMap<String, QuartoGameTransition> transitions;
-    public final static int NUM_PIECES = 32;
     /**
      * Consider putting max and mini vals into some kind of struct
      */
@@ -43,26 +42,9 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
 
         this.board = board;
 
-        if (freeSquares == null) {
-            this.freeSquares = new ArrayList<int[]>();
-            for (int i = 0; i < 5; i++) {
-                for (int j = 0; j < 5; j++) {
-                    int[] temp = {i,j};
-                    freeSquares.add(temp);
-                }
-            }
-        } else {
-           this.freeSquares = freeSquares;
-        }
+        this.freeSquares = freeSquares;
 
-        if (freePieces == null) {
-            this.freePieces = new ArrayList<QuartoPiece>(NUM_PIECES);
-            for (int i = 0; i<NUM_PIECES; i++) {
-                freePieces.add(new QuartoPiece(i));
-            }
-        } else {
-            this.freePieces = freePieces;
-        }
+        this.freePieces = freePieces;
 
         this.alpha = alpha;
         this.beta = beta;
