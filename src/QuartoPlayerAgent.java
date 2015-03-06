@@ -6,8 +6,10 @@ public class QuartoPlayerAgent extends QuartoAgent {
     public QuartoPlayerAgent(GameClient gameClient, String stateFileName) {
         // because super calls one of the super class constructors(you can overload constructors), you need to pass the parameters required.
         super(gameClient, stateFileName);
-
-        this.curState = new QuartoGameState(this.quartoBoard);
+        setPlayerNumber();
+        // if we are player number 1, our first node is max node
+        boolean isMax = (playerNumber == 1);
+        this.curState = new QuartoGameState(new QuartoBoard(this.quartoBoard), null, null, Integer.MIN_VALUE, Integer.MAX_VALUE, isMax);
         this.maxDepth = 5;
     }
 
@@ -46,7 +48,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
         }
         else {
             for(QuartoGameState state : curState) {
-                if (state.estimated) {
+                if (state.value == null) {
                     state.resetMinimax();
                     this.searchGameTree(state, levelsLeft - 1);
                     // adjust curState minimax values
@@ -63,7 +65,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
     {
         return String.format("%5s",
                 Integer.toBinaryString(
-                        this.curState.maxTransition.transitionPiece.getPieceID())).replace(' ', '0');
+                        this.curState.bestMove.transitionPiece.getPieceID())).replace(' ', '0');
     }
 
     /**
@@ -75,8 +77,31 @@ public class QuartoPlayerAgent extends QuartoAgent {
     {
         // Set this.curState
         this.searchGameTree(this.curState, this.maxDepth);
-        return this.curState.maxTransition.transitionMove[0] + "," + this.curState.maxTransition.transitionMove[1];
+        return this.curState.bestMove.transitionMove[0] + "," + this.curState.bestMove.transitionMove[1];
     }
+
+    @Override
+    protected void play() {
+		boolean gameOn = true;
+		setTurnTimeLimit();
+
+		//player 2 gets first move
+		if (playerNumber == 2) {
+            choosePieceTurn();
+        }
+
+		while(gameOn) {
+            //print board
+            this.quartoBoard.printBoardState();
+            //turn order swaps
+            chooseMoveTurn();
+
+            this.quartoBoard.printBoardState();
+
+            choosePieceTurn();
+        }
+
+	}
 
     //loop through board and see if the game is in a won state
     private boolean checkIfGameIsWon() {
@@ -88,7 +113,6 @@ public class QuartoPlayerAgent extends QuartoAgent {
                 System.out.println("Win via row: " + (i) + " (zero-indexed)");
                 return true;
             }
-
         }
         //loop through columns
         for(int i = 0; i < NUMBER_OF_COLUMNS; i++) {
@@ -97,7 +121,6 @@ public class QuartoPlayerAgent extends QuartoAgent {
                 System.out.println("Win via column: " + (i) + " (zero-indexed)");
                 return true;
             }
-
         }
 
         //check Diagonals
