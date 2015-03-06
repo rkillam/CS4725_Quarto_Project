@@ -60,10 +60,10 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
         //deep copy of all freePieces
 
         for (QuartoPiece piece: this.freePieces) {
-            freePieces.add(piece);
+            if (piece.getPieceID() != nextPiece.getPieceID()) {
+                freePieces.add(piece);
+            }
         }
-        freePieces.remove(nextPiece.getPieceID());
-
 
         //deep copy of all squares minus nextSquare
 
@@ -75,9 +75,8 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
             }
         }
 
-        QuartoGameState newState = new QuartoGameState(new QuartoBoard(this.board), freeSquares, freePieces, this.alpha,
+        return new QuartoGameState(new QuartoBoard(this.board), freeSquares, freePieces, this.alpha,
                 this.beta, !this.isMaxState);
-        return newState;
     }
 
 
