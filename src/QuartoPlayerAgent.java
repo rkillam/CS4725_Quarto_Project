@@ -10,8 +10,6 @@ public class QuartoPlayerAgent extends QuartoAgent {
         // because super calls one of the super class constructors(you can overload constructors), you need to pass the parameters required.
         super(gameClient, stateFileName);
         setPlayerNumber();
-        // if we are player number 1, our first node is max node
-
 
         ArrayList<int[]> freeSquares = new ArrayList<int[]>();
         for (int i = 0; i < 5; i++) {
@@ -27,6 +25,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
             freePieces.add(new QuartoPiece(i));
         }
 
+        // if we are player number 1, our first node is max node
         boolean isMax = (playerNumber == 1);
         this.curState = new QuartoGameState(new QuartoBoard(this.quartoBoard), freeSquares, freePieces, Integer.MIN_VALUE, Integer.MAX_VALUE, isMax);
         this.maxDepth = 5;
