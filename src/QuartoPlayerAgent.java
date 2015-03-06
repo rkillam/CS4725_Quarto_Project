@@ -4,6 +4,8 @@ public class QuartoPlayerAgent extends QuartoAgent {
     private QuartoGameState curState;
     private int maxDepth;
     public final static int NUM_PIECES = 32;
+    public final static int ROW_LENGTH = 5;
+    public final static int COL_LENGTH = 5;
 
     //Example AI
     public QuartoPlayerAgent(GameClient gameClient, String stateFileName) {
@@ -12,13 +14,12 @@ public class QuartoPlayerAgent extends QuartoAgent {
         setPlayerNumber();
 
         ArrayList<int[]> freeSquares = new ArrayList<int[]>();
-        for (int i = 0; i < 5; i++) {
-            for (int j = 0; j < 5; j++) {
+        for (int i = 0; i < ROW_LENGTH; i++) {
+            for (int j = 0; j < COL_LENGTH; j++) {
                 int[] temp = {i,j};
                 freeSquares.add(temp);
             }
         }
-
 
         ArrayList<QuartoPiece> freePieces = new ArrayList<QuartoPiece>(NUM_PIECES);
         for (int i = 0; i<NUM_PIECES; i++) {
