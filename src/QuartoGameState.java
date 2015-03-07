@@ -12,6 +12,9 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
     public ArrayList<QuartoPiece> freePieces;
     public HashMap<String, QuartoGameTransition> transitions;
 
+    public int[] square;
+    public QuartoPiece piece;
+
     public int value;
     public int alpha;
     public int beta;
@@ -144,12 +147,16 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
                 nextSquare = squares.next();
                 QuartoGameState newState = curState.nextState(nextSquare, nextPiece);
                 QuartoGameState registeredState = registeredStates.get(newState.getHash());
+
                 if(registeredState == null) {
                         registeredStates.put(newState.getHash(), newState);
                 }
-                registeredStates.put(newState.getHash(), newState);
+
+                newState.setTransitionInfo(nextSquare, nextPiece);
+
                 QuartoGameTransition newTransition = new QuartoGameTransition(newState, nextPiece, nextSquare);
                 curState.transitions.put(newTransition.getHashCode(), newTransition);
+
                 return registeredStates.get(newState.getHash());
             }
 
@@ -173,6 +180,11 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
     public void resetMinimax() {
         alpha = 0;
         beta = 0;
+    }
+
+    public void setTransitionInfo(int[] square, QuartoPiece piece) {
+        this.square = square;
+        this.piece = piece;
     }
 
     /*

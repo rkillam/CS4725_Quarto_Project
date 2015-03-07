@@ -70,18 +70,19 @@ public class QuartoPlayerAgent extends QuartoAgent {
         }
         else {
             for(QuartoGameState state : curState) {
-                System.out.print(state.value + " ");
                 state.resetMinimax();
-                System.out.print(state.value);
                 searchGameTree(state, levelsLeft - 1);
 
                 if(curState.isMaxState) {
                     if(state.value > curState.value) {
-                        curState.value = state.value-1;
+                        curState.value = curState.alpha = state.value-1;
+                        String temp = state.piece.binaryStringRepresentation() + ":" +
+                                state.square[0] + "," + state.square[1];
+                        curState.bestTransition = state.transitions.get(temp);
                     }
                 } else {
                     if(state.value < curState.value) {
-                        curState.value = state.value + 1;
+                        curState.value = curState.beta = state.value + 1;
                     }
                 }
 
