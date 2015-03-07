@@ -14,8 +14,8 @@ public class QuartoGameTransition {
      * @param        transitionPiece
      * @param        transitionMove
      */
-    public void QuartoGameTransition(QuartoGameState fromState, QuartoGameState toState,
-                                     QuartoPiece transitionPiece, int[] transitionMove) {
+    public QuartoGameTransition(QuartoGameState toState, QuartoPiece transitionPiece,
+                                     int[] transitionMove) {
         this.toState = toState;
         this.transitionPiece = transitionPiece;
         this.transitionMove = transitionMove;

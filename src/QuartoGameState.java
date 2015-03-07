@@ -5,25 +5,18 @@ import java.util.Iterator;
 
 public class QuartoGameState implements Iterable<QuartoGameState> {
 
-    /*
-     * TODO: We need to come up with a way to prune unreachable
-     *       game states from registeredStates, otherwise we
-     *       will likely run into a big memory usage issue.
-     */
     private static HashMap<String, QuartoGameState> registeredStates = new HashMap<String, QuartoGameState>();
 
     public QuartoBoard board;
     public ArrayList<int[]> freeSquares;
     public ArrayList<QuartoPiece> freePieces;
     public HashMap<String, QuartoGameTransition> transitions;
-    /**
-     * Consider putting max and mini vals into some kind of struct
-     */
-    public Integer value;
+
+    public int value;
     public int alpha;
     public int beta;
     public boolean isMaxState;
-    public QuartoGameTransition bestMove;
+    public QuartoGameTransition bestTransition;
 
     //
     // Methods
@@ -35,6 +28,7 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
      * @param        freePieces
      * @param        alpha
      * @param        beta
+     * @param        isMaxState
      */
     public QuartoGameState(QuartoBoard board, ArrayList<int[]> freeSquares,
                                 ArrayList<QuartoPiece> freePieces, int alpha, int beta,
@@ -50,6 +44,8 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
         this.beta = beta;
 
         this.isMaxState = isMaxState;
+
+        this.value = this.isMaxState ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 
         this.transitions = new HashMap<String, QuartoGameTransition>();
     }
@@ -75,26 +71,20 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
             }
         }
 
-        return new QuartoGameState(new QuartoBoard(this.board), freeSquares, freePieces, this.alpha,
-                this.beta, !this.isMaxState);
+        QuartoBoard newBoard = new QuartoBoard(this.board);
+        newBoard.insertPieceOnBoard(nextSquare[0], nextSquare[1], nextPiece.getPieceID());
+
+        return new QuartoGameState(newBoard, freeSquares, freePieces,
+                                   this.alpha, this.beta, !this.isMaxState);
     }
 
-
-    /**
-     * Evaluates the current game state, evaluation is broken into 3 cases:
-     *     1) This is a win state set:
-     *         maxVal = inf and miniVal = -inf
-     *     2) This state has no children which means we're at the bottom of the search
-     * tree:
-     *         Use heuristic to evaluate the state
-     *         Set this.estimated = true to indicate that we haven't reached a win
-     * state
-     *     3) This state has children:
-     *         Set minimax values according to children
-     *         Set maxTransition and miniTransition
-     */
     public void evaluate()
     {
+        if(this.hasQuarto()) {
+            value = isMaxState ? 27 : -27;
+        } else {
+            value = 0;
+        }
     }
 
 
@@ -158,7 +148,7 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
                         registeredStates.put(newState.getHash(), newState);
                 }
                 registeredStates.put(newState.getHash(), newState);
-                QuartoGameTransition newTransition = new QuartoGameTransition();
+                QuartoGameTransition newTransition = new QuartoGameTransition(newState, nextPiece, nextSquare);
                 curState.transitions.put(newTransition.getHashCode(), newTransition);
                 return registeredStates.get(newState.getHash());
             }
@@ -177,8 +167,20 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
         };
     }
 
+    /**
+     *  Resets minimax values based off new values.
+     */
     public void resetMinimax() {
+        alpha = 0;
+        beta = 0;
+    }
 
+    /*
+     *  Dump no longer referenced states by clearing
+     *  currently register states for garbage collection
+     */
+    public void clearStates() {
+        registeredStates.clear();
     }
 
     public String getHash() {

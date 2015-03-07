@@ -28,7 +28,9 @@ public class QuartoPlayerAgent extends QuartoAgent {
 
         // if we are player number 1, our first node is max node
         boolean isMax = (playerNumber == 1);
-        this.curState = new QuartoGameState(new QuartoBoard(this.quartoBoard), freeSquares, freePieces, Integer.MIN_VALUE, Integer.MAX_VALUE, isMax);
+        this.curState = new QuartoGameState(new QuartoBoard(this.quartoBoard),
+                                            freeSquares, freePieces, Integer.MIN_VALUE,
+                                            Integer.MAX_VALUE, isMax);
         this.maxDepth = 5;
     }
 
@@ -63,15 +65,26 @@ public class QuartoPlayerAgent extends QuartoAgent {
     private void searchGameTree(QuartoGameState curState, int levelsLeft)
     {
         if(levelsLeft == 0 || curState.hasQuarto()) {
+            //Reached depth or a terminal winning node
             curState.evaluate();
         }
         else {
             for(QuartoGameState state : curState) {
-                if (state.value == null) {
-                    state.resetMinimax();
-                    this.searchGameTree(state, levelsLeft - 1);
-                    // adjust curState minimax values
+                System.out.print(state.value + " ");
+                state.resetMinimax();
+                System.out.print(state.value);
+                searchGameTree(state, levelsLeft - 1);
+
+                if(curState.isMaxState) {
+                    if(state.value > curState.value) {
+                        curState.value = state.value-1;
+                    }
+                } else {
+                    if(state.value < curState.value) {
+                        curState.value = state.value + 1;
+                    }
                 }
+
             }
         }
     }
@@ -84,7 +97,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
     {
         return String.format("%5s",
                 Integer.toBinaryString(
-                        this.curState.bestMove.transitionPiece.getPieceID())).replace(' ', '0');
+                        this.curState.bestTransition.transitionPiece.getPieceID())).replace(' ', '0');
     }
 
     /**
@@ -96,20 +109,21 @@ public class QuartoPlayerAgent extends QuartoAgent {
     {
         // Set this.curState
         this.searchGameTree(this.curState, this.maxDepth);
-        return this.curState.bestMove.transitionMove[0] + "," + this.curState.bestMove.transitionMove[1];
+
+        return this.curState.bestTransition.transitionMove[0] + "," + this.curState.bestTransition.transitionMove[1];
     }
 
     @Override
     protected void play() {
-		boolean gameOn = true;
-		setTurnTimeLimit();
+        boolean gameOn = true;
+        setTurnTimeLimit();
 
-		//player 2 gets first move
-		if (playerNumber == 2) {
+        //player 2 gets first move
+        if (playerNumber == 2) {
             choosePieceTurn();
         }
 
-		while(gameOn) {
+        while(gameOn) {
             //print board
             this.quartoBoard.printBoardState();
             //turn order swaps
@@ -119,7 +133,6 @@ public class QuartoPlayerAgent extends QuartoAgent {
 
             choosePieceTurn();
         }
-
 	}
 
     //loop through board and see if the game is in a won state
