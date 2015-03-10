@@ -1,5 +1,5 @@
+import java.lang.Override;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 public class QuartoPlayerAgent extends QuartoAgent {
     private static QuartoGameState curState;
@@ -7,6 +7,8 @@ public class QuartoPlayerAgent extends QuartoAgent {
     public final static int NUM_PIECES = 32;
     public final static int ROW_LENGTH = 5;
     public final static int COL_LENGTH = 5;
+
+    public int[] minisChosenSquare = {-1,-1};
 
     private static ArrayList<Thread> runningThreads = new ArrayList<Thread>();
 
@@ -29,13 +31,13 @@ public class QuartoPlayerAgent extends QuartoAgent {
             freePieces.add(new QuartoPiece(i));
         }
 
-        // if we are player number 1, our first node is max node
-        boolean isMax = (playerNumber == 1);
+        // if we are player number 1 we want to move to a max node, so our first node is min node
+        boolean isMax = (playerNumber != 1);
 
         this.curState = new QuartoGameState(new QuartoBoard(this.quartoBoard),
                                             freeSquares, freePieces, Integer.MIN_VALUE,
                                             Integer.MAX_VALUE, isMax);
-        this.maxDepth = 5;
+        this.maxDepth = 1;
     }
 
     //MAIN METHOD
@@ -58,14 +60,6 @@ public class QuartoPlayerAgent extends QuartoAgent {
 
         gameClient.connectToServer(ip, 4321);
         QuartoPlayerAgent quartoAgent = new QuartoPlayerAgent(gameClient, stateFileName);
-
-        Thread search = new Thread(new Runnable() {
-            public void run() {
-                searchGameTree(curState, maxDepth);
-            }
-        });
-        runningThreads.add(search);
-        search.start();
 
         quartoAgent.play();
 
@@ -92,6 +86,9 @@ public class QuartoPlayerAgent extends QuartoAgent {
                         String temp = state.piece.binaryStringRepresentation() + ":" +
                                 state.square[0] + "," + state.square[1];
                         curState.bestTransition = state.transitions.get(temp);
+                        if(curState.bestTransition == null) {
+                            curState.bestTransition = new QuartoGameTransition(state, state.piece, state.square);
+                        }
                     }
                 } else {
                     if(state.value < curState.value) {
@@ -104,7 +101,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
                         curState.bestTransition = state.transitions.get(temp);
                     }
                 }
-
+//                System.out.println(curState.value);
             }
         }
     }
@@ -115,15 +112,8 @@ public class QuartoPlayerAgent extends QuartoAgent {
     @Override
     protected String pieceSelectionAlgorithm()
     {
-        this.startTimer();
-
-        while (this.getMillisecondsFromTimer() < (this.timeLimitForResponse - COMMUNICATION_DELAY)) {
-            //Wait while we search the tree
-        }
-
-        System.out.println("We need to provide a piece!");
-
         if(this.curState.bestTransition != null) {
+
             return String.format("%5s",
                     Integer.toBinaryString(
                             this.curState.bestTransition.transitionPiece.getPieceID())).replace(' ', '0');
@@ -139,20 +129,30 @@ public class QuartoPlayerAgent extends QuartoAgent {
     @Override
     protected String moveSelectionAlgorithm(int pieceID)
     {
+        System.out.println("Entered move selection");
+
+        QuartoPiece givenPiece = this.curState.board.getPiece(pieceID);
+        QuartoGameState prevState = this.curState;
         // Set this.curState
-        this.startTimer();
+        QuartoGameTransition quartoGameTransition = this.curState.transitions.get(givenPiece.binaryStringRepresentation() + ":" +
+                                                    minisChosenSquare[0] + "," + minisChosenSquare[1]);
 
-        this.curState.freePieces.remove(this.curState.board.getPiece(pieceID));
-
-        //this.curState = this.curState.registeredStates.get(Arrays.toString(curState.board.board));
-
-        //curState.clearStates();
-
-        while (this.getMillisecondsFromTimer() < (this.timeLimitForResponse - COMMUNICATION_DELAY)) {
-            //Do nothing
+        if(quartoGameTransition == null) {
+            ArrayList<int[]> tempSquares = new ArrayList<int[]>();
+            for (int[] square: prevState.freeSquares) {
+                if (square[0] != minisChosenSquare[0] || square[1] != minisChosenSquare[1]) {
+                    tempSquares.add(square.clone());
+                }
+            }
+            prevState.freeSquares = tempSquares;
+            prevState.freePieces.remove(givenPiece);
+            this.curState = new QuartoGameState(prevState.board, prevState.freeSquares, prevState.freePieces,
+                                                prevState.alpha, prevState.beta, !prevState.isMaxState);
+        } else {
+            this.curState = quartoGameTransition.toState;
         }
 
-        System.out.println("We need to make a move!");
+        searchGameTree(curState, maxDepth);
 
         return this.curState.bestTransition.transitionMove[0] + "," + this.curState.bestTransition.transitionMove[1];
     }
@@ -178,6 +178,43 @@ public class QuartoPlayerAgent extends QuartoAgent {
             choosePieceTurn();
         }
 	}
+
+    @Override
+    protected void choosePieceTurn() {
+
+        String MessageFromServer;
+        //get message
+        MessageFromServer = this.gameClient.readFromServer(1000000);
+        String[] splittedMessage = MessageFromServer.split("\\s+");
+
+        //close program is message is not the expected message
+        isExpectedMessage(splittedMessage, SELECT_PIECE_HEADER, true);
+
+        //determine piece
+        String pieceMessage = pieceSelectionAlgorithm();
+
+        this.gameClient.writeToServer(pieceMessage);
+
+        MessageFromServer = this.gameClient.readFromServer(1000000);
+        String[] splittedResponse = MessageFromServer.split("\\s+");
+        if (!isExpectedMessage(splittedResponse, ACKNOWLEDGMENT_PIECE_HEADER) && !isExpectedMessage(splittedResponse, ERROR_PIECE_HEADER)) {
+            turnError(MessageFromServer);
+        }
+
+        int pieceID = Integer.parseInt(splittedResponse[1], 2);
+
+        MessageFromServer = this.gameClient.readFromServer(1000000);
+        String[] splittedMoveResponse = MessageFromServer.split("\\s+");
+
+        isExpectedMessage(splittedMoveResponse, MOVE_MESSAGE_HEADER, true);
+
+        String[] moveString = splittedMoveResponse[1].split(",");
+        minisChosenSquare = new int[2];
+        minisChosenSquare[0] = Integer.parseInt(moveString[0]);
+        minisChosenSquare[1] = Integer.parseInt(moveString[1]);
+
+        this.quartoBoard.insertPieceOnBoard(minisChosenSquare[0], minisChosenSquare[1], pieceID);
+    }
 
     //loop through board and see if the game is in a won state
     private boolean checkIfGameIsWon() {

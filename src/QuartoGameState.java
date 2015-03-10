@@ -90,7 +90,6 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
     public void evaluate()
     {
         if(this.hasQuarto()) {
-            System.out.println("Found winning state!");
             value = isMaxState ? 27 : -27;
         } else {
             value = 0;
@@ -153,8 +152,8 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
                 QuartoGameState newState = curState.nextState(nextSquare, nextPiece);
                 QuartoGameState registeredState = registeredStates.get(newState.getHash());
 
-                System.out.print("Next: ");
-                System.out.println(newState.getHash());
+//                System.out.print("Next: ");
+//                System.out.println(newState.getHash());
 
                 if(registeredState == null) {
                         registeredStates.put(newState.getHash(), newState);
