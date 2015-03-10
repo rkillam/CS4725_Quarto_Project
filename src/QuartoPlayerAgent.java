@@ -1,11 +1,14 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class QuartoPlayerAgent extends QuartoAgent {
-    private QuartoGameState curState;
-    private int maxDepth;
+    private static QuartoGameState curState;
+    private static int maxDepth;
     public final static int NUM_PIECES = 32;
     public final static int ROW_LENGTH = 5;
     public final static int COL_LENGTH = 5;
+
+    private static ArrayList<Thread> runningThreads = new ArrayList<Thread>();
 
     //Example AI
     public QuartoPlayerAgent(GameClient gameClient, String stateFileName) {
@@ -28,6 +31,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
 
         // if we are player number 1, our first node is max node
         boolean isMax = (playerNumber == 1);
+
         this.curState = new QuartoGameState(new QuartoBoard(this.quartoBoard),
                                             freeSquares, freePieces, Integer.MIN_VALUE,
                                             Integer.MAX_VALUE, isMax);
@@ -54,6 +58,15 @@ public class QuartoPlayerAgent extends QuartoAgent {
 
         gameClient.connectToServer(ip, 4321);
         QuartoPlayerAgent quartoAgent = new QuartoPlayerAgent(gameClient, stateFileName);
+
+        Thread search = new Thread(new Runnable() {
+            public void run() {
+                searchGameTree(curState, maxDepth);
+            }
+        });
+        runningThreads.add(search);
+        search.start();
+
         quartoAgent.play();
 
         gameClient.closeConnection();
@@ -62,10 +75,10 @@ public class QuartoPlayerAgent extends QuartoAgent {
      * @param        curState
      * @param        levelsLeft
      */
-    private void searchGameTree(QuartoGameState curState, int levelsLeft)
+    private static void searchGameTree(QuartoGameState curState, int levelsLeft)
     {
         if(levelsLeft == 0 || curState.hasQuarto()) {
-            //Reached depth or a terminal winning node
+            //Reached max depth or a terminal winning node
             curState.evaluate();
         }
         else {
@@ -84,6 +97,12 @@ public class QuartoPlayerAgent extends QuartoAgent {
                     if(state.value < curState.value) {
                         curState.value = curState.beta = state.value + 1;
                     }
+
+                    if(state.value > curState.value) {
+                        String temp = state.piece.binaryStringRepresentation() + ":" +
+                                state.square[0] + "," + state.square[1];
+                        curState.bestTransition = state.transitions.get(temp);
+                    }
                 }
 
             }
@@ -96,9 +115,21 @@ public class QuartoPlayerAgent extends QuartoAgent {
     @Override
     protected String pieceSelectionAlgorithm()
     {
-        return String.format("%5s",
-                Integer.toBinaryString(
-                        this.curState.bestTransition.transitionPiece.getPieceID())).replace(' ', '0');
+        this.startTimer();
+
+        while (this.getMillisecondsFromTimer() < (this.timeLimitForResponse - COMMUNICATION_DELAY)) {
+            //Wait while we search the tree
+        }
+
+        System.out.println("We need to provide a piece!");
+
+        if(this.curState.bestTransition != null) {
+            return String.format("%5s",
+                    Integer.toBinaryString(
+                            this.curState.bestTransition.transitionPiece.getPieceID())).replace(' ', '0');
+        } else {
+            return String.format("%5s", Integer.toBinaryString(this.curState.board.chooseNextPieceNotPlayed()));
+        }
     }
 
     /**
@@ -109,7 +140,19 @@ public class QuartoPlayerAgent extends QuartoAgent {
     protected String moveSelectionAlgorithm(int pieceID)
     {
         // Set this.curState
-        this.searchGameTree(this.curState, this.maxDepth);
+        this.startTimer();
+
+        this.curState.freePieces.remove(this.curState.board.getPiece(pieceID));
+
+        //this.curState = this.curState.registeredStates.get(Arrays.toString(curState.board.board));
+
+        //curState.clearStates();
+
+        while (this.getMillisecondsFromTimer() < (this.timeLimitForResponse - COMMUNICATION_DELAY)) {
+            //Do nothing
+        }
+
+        System.out.println("We need to make a move!");
 
         return this.curState.bestTransition.transitionMove[0] + "," + this.curState.bestTransition.transitionMove[1];
     }

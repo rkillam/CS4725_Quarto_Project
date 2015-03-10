@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 
@@ -26,26 +27,24 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
     //
 
     /**
-     * @param        board
-     * @param        freeSquares
-     * @param        freePieces
-     * @param        alpha
-     * @param        beta
-     * @param        isMaxState
+     *
+     * @param board
+     * @param freeSquares
+     * @param freePieces
+     * @param alpha
+     * @param beta
+     * @param isMaxState
      */
     public QuartoGameState(QuartoBoard board, ArrayList<int[]> freeSquares,
                                 ArrayList<QuartoPiece> freePieces, int alpha, int beta,
                                 boolean isMaxState) {
 
         this.board = board;
-
         this.freeSquares = freeSquares;
-
         this.freePieces = freePieces;
 
         this.alpha = alpha;
         this.beta = beta;
-
         this.isMaxState = isMaxState;
 
         this.value = this.isMaxState ? Integer.MIN_VALUE : Integer.MAX_VALUE;
@@ -53,11 +52,16 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
         this.transitions = new HashMap<String, QuartoGameTransition>();
     }
 
+    /**
+     *
+     * @param nextSquare
+     * @param nextPiece
+     * @return
+     */
     public QuartoGameState nextState(int[] nextSquare, QuartoPiece nextPiece) {
         ArrayList<QuartoPiece> freePieces = new ArrayList<QuartoPiece>();
 
         //deep copy of all freePieces
-
         for (QuartoPiece piece: this.freePieces) {
             if (piece.getPieceID() != nextPiece.getPieceID()) {
                 freePieces.add(piece);
@@ -65,11 +69,10 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
         }
 
         //deep copy of all squares minus nextSquare
-
         ArrayList<int[]> freeSquares = new ArrayList<int[]>();
 
         for (int[] square: this.freeSquares) {
-            if (square[0] != nextSquare[0] && square[1] != nextSquare[1]) {
+            if (square[0] != nextSquare[0] || square[1] != nextSquare[1]) {
                 freeSquares.add(square.clone());
             }
         }
@@ -81,15 +84,18 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
                                    this.alpha, this.beta, !this.isMaxState);
     }
 
+    /**
+     *
+     */
     public void evaluate()
     {
         if(this.hasQuarto()) {
+            System.out.println("Found winning state!");
             value = isMaxState ? 27 : -27;
         } else {
             value = 0;
         }
     }
-
 
     /**
      * @return       boolean
@@ -119,7 +125,6 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
         return false;
     }
 
-
     /**
      * @return       Iterator<QuartoGameState>
      */
@@ -148,13 +153,16 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
                 QuartoGameState newState = curState.nextState(nextSquare, nextPiece);
                 QuartoGameState registeredState = registeredStates.get(newState.getHash());
 
+                System.out.print("Next: ");
+                System.out.println(newState.getHash());
+
                 if(registeredState == null) {
                         registeredStates.put(newState.getHash(), newState);
                 }
 
                 newState.setTransitionInfo(nextSquare, nextPiece);
-
                 QuartoGameTransition newTransition = new QuartoGameTransition(newState, nextPiece, nextSquare);
+
                 curState.transitions.put(newTransition.getHashCode(), newTransition);
 
                 return registeredStates.get(newState.getHash());
@@ -175,11 +183,11 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
     }
 
     /**
-     *  Resets minimax values based off new values.
+     *  Resets minimax values
      */
     public void resetMinimax() {
-        alpha = 0;
-        beta = 0;
+        alpha = Integer.MIN_VALUE;
+        beta = Integer.MAX_VALUE;
     }
 
     public void setTransitionInfo(int[] square, QuartoPiece piece) {
@@ -195,7 +203,20 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
         registeredStates.clear();
     }
 
+    /**
+     * Generates a hash based on current board layout.
+     *
+     * @return String representation of the game board.
+     */
     public String getHash() {
-        return "";
+        String hash = "";
+        QuartoPiece p;
+        for(int i=0; i<this.board.board.length;i++) {
+            for(int j=0; j<this.board.board[0].length;j++) {
+                p = this.board.getPieceOnPosition(i,j);
+                hash += p == null ? "_" : p.binaryStringRepresentation();
+            }
+        }
+        return hash;
     }
 }
