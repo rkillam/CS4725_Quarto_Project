@@ -116,7 +116,7 @@ public class GameServer {
 		if (playerNumber > 0 && this.getNumberOfPlayers() >= playerNumber) {
 			try {
 				//set the timeout for user input
-				//this.clientSocketArray[playerNumber - 1].setSoTimeout(timeOutTime);
+				this.clientSocketArray[playerNumber - 1].setSoTimeout(timeOutTime);
 				BufferedReader in = new BufferedReader(new InputStreamReader(this.clientSocketArray[playerNumber - 1].getInputStream()));
 				String input = in.readLine();
 				System.out.println("Server received message from player " + playerNumber + ": " + input);

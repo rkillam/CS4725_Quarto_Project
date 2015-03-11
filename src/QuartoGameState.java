@@ -19,6 +19,9 @@ public class QuartoGameState implements Iterable<QuartoGameTransition> {
     public boolean isMaxState;
     public QuartoGameTransition bestTransition;
 
+    // FIXME HACKY!! this is a hacky way to ensure that states are only examined once per level
+    public int lastLevelExaminedOn = 0;
+
     //
     // Methods
     //
@@ -50,6 +53,41 @@ public class QuartoGameState implements Iterable<QuartoGameTransition> {
     }
 
     /**
+     * Returns the number of UNIQUE descendants from this state after the
+     * given number of generations
+     *
+     * numOfDesc calculates the number of descendants regardless of path:
+     *          (#FreePieces! * #FreeSquares) / [(#FreePieces - gens)! *(#FreeSquares - gens)!]
+     *
+     * permsOfMoves is what ensures that the given number of descendants is unique. After a 2
+     * generations we can have 2 states that each have the same pieces in the same square, that
+     * is because one state will have put piece x in its square first, while the other state will
+     * have placed piece y first.
+     *
+     * If we extend this to n moves, there are n! orders for those pieces to have been placed in
+     * those squares, so we need to divide by n!.
+     *
+     * @param generations number of generations to calculate for
+     * @return number of UNIQUE descendants after the given number of generations
+     */
+    public int calcNodesInGeneration(int generations) {
+        int numOfDesc = 1;
+        int permsOfMoves = 1;
+
+        int j = 0;
+        for(int i = this.freePieces.size(); i > this.freePieces.size() - generations; --i) {
+            numOfDesc *= i;
+            permsOfMoves *= ++j;
+        }
+
+        for(int i = this.freeSquares.size(); i > this.freeSquares.size() - generations; --i) {
+            numOfDesc *= i;
+        }
+
+        return numOfDesc / permsOfMoves;
+    }
+
+    /**
      *
      * @param nextSquare
      * @param nextPiece
@@ -77,8 +115,15 @@ public class QuartoGameState implements Iterable<QuartoGameTransition> {
         QuartoBoard newBoard = new QuartoBoard(this.board);
         newBoard.insertPieceOnBoard(nextSquare[0], nextSquare[1], nextPiece.getPieceID());
 
-        return new QuartoGameState(newBoard, freeSquares, freePieces,
-                                   this.alpha, this.beta, !this.isMaxState);
+        QuartoGameState newState = new QuartoGameState(newBoard, freeSquares, freePieces,
+                this.alpha, this.beta, !this.isMaxState);
+
+        String newStateHash = newState.getHash();
+        if(registeredStates.get(newStateHash) == null) {
+            registeredStates.put(newStateHash, newState);
+        }
+
+        return newState;
     }
 
     /**
@@ -147,11 +192,6 @@ public class QuartoGameState implements Iterable<QuartoGameTransition> {
 
                 nextSquare = squares.next();
                 QuartoGameState newState = curState.nextState(nextSquare, nextPiece);
-
-                String newStateHash = newState.getHash();
-                if(registeredStates.get(newStateHash) == null) {
-                    registeredStates.put(newStateHash, newState);
-                }
 
                 QuartoGameTransition newTransition = new QuartoGameTransition(newState, nextPiece, nextSquare);
 
