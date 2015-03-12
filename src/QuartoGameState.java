@@ -26,19 +26,31 @@ public class QuartoGameState implements Iterable<QuartoGameTransition> {
     /**
      *
      * @param board
-     * @param freeSquares
-     * @param freePieces
      * @param alpha
      * @param beta
      * @param isMaxState
      */
-    public QuartoGameState(QuartoBoard board, ArrayList<int[]> freeSquares,
-                                ArrayList<QuartoPiece> freePieces, int alpha, int beta,
-                                boolean isMaxState) {
+    public QuartoGameState(QuartoBoard board, int alpha, int beta, boolean isMaxState) {
 
         this.board = board;
-        this.freeSquares = freeSquares;
-        this.freePieces = freePieces;
+
+        this.freeSquares = new ArrayList<int[]>();
+        for (int i = 0; i < this.board.board.length; i++) {
+            for (int j = 0; j < this.board.board[i].length; j++) {
+                if (!this.board.isSpaceTaken(i, j)) {
+                    int[] temp = {i,j};
+                    this.freeSquares.add(temp);
+                }
+            }
+        }
+
+        this.freePieces = new ArrayList<QuartoPiece>();
+        for (QuartoPiece piece: this.board.pieces) {
+            if (!piece.isInPlay()) {
+                this.freePieces.add(piece);
+            }
+        }
+
 
         this.alpha = alpha;
         this.beta = beta;
@@ -47,38 +59,8 @@ public class QuartoGameState implements Iterable<QuartoGameTransition> {
         this.value = this.isMaxState ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 
         this.transitions = new HashMap<String, QuartoGameTransition>();
-    }
 
-    /**
-     *
-     * @param nextSquare
-     * @param nextPiece
-     * @return
-     */
-    public QuartoGameState nextState(int[] nextSquare, QuartoPiece nextPiece) {
-        ArrayList<QuartoPiece> freePieces = new ArrayList<QuartoPiece>();
-
-        //deep copy of all freePieces
-        for (QuartoPiece piece: this.freePieces) {
-            if (piece.getPieceID() != nextPiece.getPieceID()) {
-                freePieces.add(piece);
-            }
-        }
-
-        //deep copy of all squares minus nextSquare
-        ArrayList<int[]> freeSquares = new ArrayList<int[]>();
-
-        for (int[] square: this.freeSquares) {
-            if (square[0] != nextSquare[0] || square[1] != nextSquare[1]) {
-                freeSquares.add(square.clone());
-            }
-        }
-
-        QuartoBoard newBoard = new QuartoBoard(this.board);
-        newBoard.insertPieceOnBoard(nextSquare[0], nextSquare[1], nextPiece.getPieceID());
-
-        return new QuartoGameState(newBoard, freeSquares, freePieces,
-                                   this.alpha, this.beta, !this.isMaxState);
+        registeredStates.put(this.getHash(), this);
     }
 
     /**
@@ -140,20 +122,27 @@ public class QuartoGameState implements Iterable<QuartoGameTransition> {
                     return transitions.next();
                 }
 
+                //reset squares if finished exploring, or beginning exploring
                 if(nextSquare == null || !squares.hasNext()) {
                     squares = curState.freeSquares.iterator();
                     nextPiece = pieces.next();
                 }
 
                 nextSquare = squares.next();
-                QuartoGameState newState = curState.nextState(nextSquare, nextPiece);
+
+                QuartoBoard newBoard = new QuartoBoard(curState.board);
+
+                //TODO: figure out how to get given piece into iterator
+                newBoard.insertPieceOnBoard(nextSquare[0], nextSquare[1], nextPiece.getPieceID());
+                QuartoGameState newState = new QuartoGameState(newBoard, curState.alpha, curState.beta, !curState.isMaxState);
 
                 String newStateHash = newState.getHash();
                 if(registeredStates.get(newStateHash) == null) {
                     registeredStates.put(newStateHash, newState);
                 }
 
-                QuartoGameTransition newTransition = new QuartoGameTransition(newState, nextPiece, nextSquare);
+                //THIS IS BROKEN
+                QuartoGameTransition newTransition = new QuartoGameTransition(newState, nextPiece, nextSquare, -1);
 
                 curState.transitions.put(newTransition.getHashCode(), newTransition);
                 return newTransition;
