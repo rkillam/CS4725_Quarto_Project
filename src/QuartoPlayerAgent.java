@@ -3,7 +3,7 @@ import java.util.ArrayList;
 
 public class QuartoPlayerAgent extends QuartoAgent {
     private static QuartoGameState curState;
-    private static int maxDepth;
+    private static final int MAX_DEPTH = 1;
     public final static int NUM_PIECES = 32;
     public final static int ROW_LENGTH = 5;
     public final static int COL_LENGTH = 5;
@@ -37,7 +37,6 @@ public class QuartoPlayerAgent extends QuartoAgent {
         this.curState = new QuartoGameState(new QuartoBoard(this.quartoBoard),
                                             freeSquares, freePieces, Integer.MIN_VALUE,
                                             Integer.MAX_VALUE, isMax);
-        this.maxDepth = 1;
     }
 
     //MAIN METHOD
@@ -65,6 +64,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
 
         gameClient.closeConnection();
     }
+
     /**
      * @param        curState
      * @param        levelsLeft
@@ -76,29 +76,40 @@ public class QuartoPlayerAgent extends QuartoAgent {
             curState.evaluate();
         }
         else {
-            for(QuartoGameState state : curState) {
+            for(QuartoGameTransition transition : curState) {
+                QuartoGameState state = transition.toState;
+
                 state.resetMinimax();
                 searchGameTree(state, levelsLeft - 1);
 
                 if(curState.isMaxState) {
                     if(state.value > curState.value) {
-                        curState.value = curState.alpha = state.value-1;
-                        String temp = state.piece.binaryStringRepresentation() + ":" +
-                                state.square[0] + "," + state.square[1];
-                        curState.bestTransition = state.transitions.get(temp);
-                        if(curState.bestTransition == null) {
-                            curState.bestTransition = new QuartoGameTransition(state, state.piece, state.square);
+                        if(state.value == 0) {
+                            curState.value = curState.alpha = 0;
                         }
-                    }
-                } else {
-                    if(state.value < curState.value) {
-                        curState.value = curState.beta = state.value + 1;
-                    }
+                        else if(state.value < 0) {
+                            curState.value = curState.alpha = state.value + 1;
+                        }
+                        else {
+                            curState.value = curState.alpha = state.value - 1;
+                        }
 
-                    if(state.value > curState.value) {
-                        String temp = state.piece.binaryStringRepresentation() + ":" +
-                                state.square[0] + "," + state.square[1];
-                        curState.bestTransition = state.transitions.get(temp);
+                        curState.bestTransition = transition;
+                    }
+                }
+                else {
+                    if(state.value < curState.value) {
+                        if(state.value == 0) {
+                            curState.value = curState.alpha = 0;
+                        }
+                        else if(state.value < 0) {
+                            curState.value = curState.alpha = state.value + 1;
+                        }
+                        else {
+                            curState.value = curState.alpha = state.value - 1;
+                        }
+
+                        curState.bestTransition = transition;
                     }
                 }
 //                System.out.println(curState.value);
@@ -114,9 +125,10 @@ public class QuartoPlayerAgent extends QuartoAgent {
     {
         if(this.curState.bestTransition != null) {
 
-            return String.format("%5s",
-                    Integer.toBinaryString(
-                            this.curState.bestTransition.transitionPiece.getPieceID())).replace(' ', '0');
+            QuartoPiece transitionPiece = this.curState.bestTransition.transitionPiece;
+            this.curState = this.curState.bestTransition.toState;
+
+            return String.format("%5s", Integer.toBinaryString(transitionPiece.getPieceID())).replace(' ', '0');
         } else {
             return String.format("%5s", Integer.toBinaryString(this.curState.board.chooseNextPieceNotPlayed()));
         }
@@ -133,6 +145,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
 
         QuartoPiece givenPiece = this.curState.board.getPiece(pieceID);
         QuartoGameState prevState = this.curState;
+
         // Set this.curState
         QuartoGameTransition quartoGameTransition = this.curState.transitions.get(givenPiece.binaryStringRepresentation() + ":" +
                                                     minisChosenSquare[0] + "," + minisChosenSquare[1]);
@@ -152,7 +165,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
             this.curState = quartoGameTransition.toState;
         }
 
-        searchGameTree(curState, maxDepth);
+        searchGameTree(curState, MAX_DEPTH);
 
         return this.curState.bestTransition.transitionMove[0] + "," + this.curState.bestTransition.transitionMove[1];
     }

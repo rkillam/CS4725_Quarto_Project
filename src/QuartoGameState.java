@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 
 
-public class QuartoGameState implements Iterable<QuartoGameState> {
+public class QuartoGameState implements Iterable<QuartoGameTransition> {
 
     private static HashMap<String, QuartoGameState> registeredStates = new HashMap<String, QuartoGameState>();
 
@@ -12,9 +12,6 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
     public ArrayList<int[]> freeSquares;
     public ArrayList<QuartoPiece> freePieces;
     public HashMap<String, QuartoGameTransition> transitions;
-
-    public int[] square;
-    public QuartoPiece piece;
 
     public int value;
     public int alpha;
@@ -127,9 +124,9 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
     /**
      * @return       Iterator<QuartoGameState>
      */
-    public Iterator<QuartoGameState> iterator()
+    public Iterator<QuartoGameTransition> iterator()
     {
-        return new Iterator<QuartoGameState>() {
+        return new Iterator<QuartoGameTransition>() {
             private QuartoGameState curState = QuartoGameState.this;
             private Iterator<QuartoGameTransition> transitions = curState.transitions.values().iterator();
             private Iterator<QuartoPiece> pieces = curState.freePieces.iterator();
@@ -138,9 +135,9 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
             private int[] nextSquare = null;
 
             @Override
-            public QuartoGameState next() {
+            public QuartoGameTransition next() {
                 if(transitions.hasNext()) {
-                    return transitions.next().toState;
+                    return transitions.next();
                 }
 
                 if(nextSquare == null || !squares.hasNext()) {
@@ -150,21 +147,16 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
 
                 nextSquare = squares.next();
                 QuartoGameState newState = curState.nextState(nextSquare, nextPiece);
-                QuartoGameState registeredState = registeredStates.get(newState.getHash());
 
-//                System.out.print("Next: ");
-//                System.out.println(newState.getHash());
-
-                if(registeredState == null) {
-                        registeredStates.put(newState.getHash(), newState);
+                String newStateHash = newState.getHash();
+                if(registeredStates.get(newStateHash) == null) {
+                    registeredStates.put(newStateHash, newState);
                 }
 
-                newState.setTransitionInfo(nextSquare, nextPiece);
                 QuartoGameTransition newTransition = new QuartoGameTransition(newState, nextPiece, nextSquare);
 
                 curState.transitions.put(newTransition.getHashCode(), newTransition);
-
-                return registeredStates.get(newState.getHash());
+                return newTransition;
             }
 
             @Override
@@ -187,11 +179,6 @@ public class QuartoGameState implements Iterable<QuartoGameState> {
     public void resetMinimax() {
         alpha = Integer.MIN_VALUE;
         beta = Integer.MAX_VALUE;
-    }
-
-    public void setTransitionInfo(int[] square, QuartoPiece piece) {
-        this.square = square;
-        this.piece = piece;
     }
 
     /*
