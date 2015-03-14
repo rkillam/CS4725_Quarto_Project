@@ -60,7 +60,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
             curState.evaluate();
         }
         else {
-            for(QuartoGameTransition transition : curState) {
+            for(QuartoGameTransition transition : curState.transitions.values()) {
                 QuartoGameState state = transition.toState;
 
                 state.resetMinimax();

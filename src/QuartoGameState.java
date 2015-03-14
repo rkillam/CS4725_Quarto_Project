@@ -4,9 +4,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 
 
-public class QuartoGameState implements Iterable<QuartoGameTransition> {
+public class QuartoGameState {
 
-    private static HashMap<String, QuartoGameState> registeredStates = new HashMap<String, QuartoGameState>();
+    public static HashMap<String, QuartoGameState> registeredStates = new HashMap<String, QuartoGameState>();
 
     public QuartoBoard board;
     public ArrayList<int[]> freeSquares;
@@ -101,65 +101,6 @@ public class QuartoGameState implements Iterable<QuartoGameTransition> {
         }
 
         return false;
-    }
-
-    /**
-     * @return       Iterator<QuartoGameState>
-     */
-    public Iterator<QuartoGameTransition> iterator()
-    {
-        return new Iterator<QuartoGameTransition>() {
-            private QuartoGameState curState = QuartoGameState.this;
-            private Iterator<QuartoGameTransition> transitions = curState.transitions.values().iterator();
-            private Iterator<QuartoPiece> pieces = curState.freePieces.iterator();
-            private Iterator<int[]> squares = curState.freeSquares.iterator();
-            private QuartoPiece nextPiece = null;
-            private int[] nextSquare = null;
-
-            @Override
-            public QuartoGameTransition next() {
-                if(transitions.hasNext()) {
-                    return transitions.next();
-                }
-
-                //reset squares if finished exploring, or beginning exploring
-                if(nextSquare == null || !squares.hasNext()) {
-                    squares = curState.freeSquares.iterator();
-                    nextPiece = pieces.next();
-                }
-
-                nextSquare = squares.next();
-
-                QuartoBoard newBoard = new QuartoBoard(curState.board);
-
-                //TODO: figure out how to get given piece into iterator
-                newBoard.insertPieceOnBoard(nextSquare[0], nextSquare[1], nextPiece.getPieceID());
-                QuartoGameState newState = new QuartoGameState(newBoard, curState.alpha, curState.beta, !curState.isMaxState);
-
-                String newStateHash = newState.getHash();
-                if(registeredStates.get(newStateHash) == null) {
-                    registeredStates.put(newStateHash, newState);
-                }
-
-                //THIS IS BROKEN
-                QuartoGameTransition newTransition = new QuartoGameTransition(newState, nextPiece, nextSquare, -1);
-
-                curState.transitions.put(newTransition.getHashCode(), newTransition);
-                return newTransition;
-            }
-
-            @Override
-            public boolean hasNext() {
-                return this.transitions.hasNext() ||
-                       this.pieces.hasNext()      ||
-                       this.squares.hasNext();
-            }
-
-            @Override
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-        };
     }
 
     /**
