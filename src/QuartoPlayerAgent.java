@@ -53,18 +53,19 @@ public class QuartoPlayerAgent extends QuartoAgent {
      * @param        curState
      * @param        levelsLeft
      */
-    private static void searchGameTree(QuartoGameState curState, int levelsLeft)
+    private static void searchGameTree(QuartoGameState curState, QuartoPiece limboPiece, int levelsLeft)
     {
         if(levelsLeft == 0 || curState.hasQuarto()) {
             //Reached max depth or a terminal winning node
             curState.evaluate();
         }
         else {
-            for(QuartoGameTransition transition : curState.transitions.values()) {
+            QuartoGameTransitionGenerator gen = new QuartoGameTransitionGenerator(curState, limboPiece);
+            for(QuartoGameTransition transition : gen) {
                 QuartoGameState state = transition.toState;
 
                 state.resetMinimax();
-                searchGameTree(state, levelsLeft - 1);
+                searchGameTree(state, transition.nextPiece, levelsLeft - 1);
 
                 if(curState.isMaxState) {
                     if(state.value > curState.value) {
@@ -127,11 +128,15 @@ public class QuartoPlayerAgent extends QuartoAgent {
     {
         System.out.println("Entered move selection");
 
-        QuartoPiece givenPiece = this.curState.board.getPiece(pieceID);
         QuartoGameState prevState = this.curState;
+        QuartoPiece givenPiece = this.curState.board.getPiece(pieceID);
 
-        QuartoGameTransition quartoGameTransition = prevState.transitions.get(prevState.bestTransition.placedPiece.binaryStringRepresentation() + ":" +
-                                                    minisChosenSquare[0] + "," + minisChosenSquare[1] + ":" + givenPiece.binaryStringRepresentation());
+        QuartoGameTransition quartoGameTransition = null;
+
+        if (minisPieceID != -1) {
+            quartoGameTransition = prevState.transitions.get(prevState.bestTransition.placedPiece.binaryStringRepresentation() + ":" +
+                    minisChosenSquare[0] + "," + minisChosenSquare[1] + ":" + givenPiece.binaryStringRepresentation());
+        }
 
         if(quartoGameTransition == null) {
             this.curState = new QuartoGameState(this.quartoBoard, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
@@ -139,7 +144,8 @@ public class QuartoPlayerAgent extends QuartoAgent {
             this.curState = quartoGameTransition.toState;
         }
 
-        searchGameTree(curState, MAX_DEPTH);
+        QuartoPiece limboPiece = this.curState.board.getPiece(pieceID);
+        searchGameTree(curState, limboPiece, MAX_DEPTH);
 
         return this.curState.bestTransition.placedPieceLocation[0] + "," + this.curState.bestTransition.placedPieceLocation[1];
     }

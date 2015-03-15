@@ -6,7 +6,7 @@ import java.util.Iterator;
 
 public class QuartoGameState {
 
-    public static HashMap<String, QuartoGameState> registeredStates = new HashMap<String, QuartoGameState>();
+    private static HashMap<String, QuartoGameState> registeredStates = new HashMap<String, QuartoGameState>();
 
     public QuartoBoard board;
     public ArrayList<int[]> freeSquares;

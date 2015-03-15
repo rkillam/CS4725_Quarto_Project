@@ -5,7 +5,7 @@ import java.util.ArrayList;
 /**
  * Created by brendend on 15-03-14.
  */
-public class QuartoGameTransitionGenerator {
+public class QuartoGameTransitionGenerator implements Iterable<QuartoGameTransition>{
 
     public QuartoGameState fromState;
     public QuartoPiece limboPiece;
@@ -25,6 +25,7 @@ public class QuartoGameTransitionGenerator {
     /**
      * @return       Iterator<QuartoGameState>
      */
+    @Override
     public Iterator<QuartoGameTransition> iterator()
     {
         return new Iterator<QuartoGameTransition>() {
@@ -52,15 +53,6 @@ public class QuartoGameTransitionGenerator {
 
                 newBoard.insertPieceOnBoard(nextSquare[0], nextSquare[1], limboPiece.getPieceID());
                 QuartoGameState newState = new QuartoGameState(newBoard, curState.alpha, curState.beta, !curState.isMaxState);
-
-
-                //Question: This code will never run correct?
-                /**
-                String newStateHash = newState.getHash();
-                if(QuartoGameState.registeredStates.get(newStateHash) == null) {
-                    QuartoGameState.registeredStates.put(newStateHash, newState);
-                }
-                 */
 
                 QuartoGameTransition newTransition = new QuartoGameTransition(newState, limboPiece, nextSquare, nextPiece);
 
