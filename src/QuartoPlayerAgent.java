@@ -139,7 +139,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
         }
 
         if(quartoGameTransition == null) {
-            this.curState = new QuartoGameState(this.quartoBoard, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
+            this.curState = new QuartoGameState(this.quartoBoard, Integer.MIN_VALUE, Integer.MAX_VALUE, false);
         } else {
             this.curState = quartoGameTransition.toState;
         }
