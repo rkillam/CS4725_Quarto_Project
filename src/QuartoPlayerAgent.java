@@ -133,7 +133,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
 
         QuartoGameTransition quartoGameTransition = null;
 
-        if (minisPieceID != -1) {
+        if (prevState.bestTransition != null) {
             quartoGameTransition = prevState.transitions.get(prevState.bestTransition.placedPiece.binaryStringRepresentation() + ":" +
                     minisChosenSquare[0] + "," + minisChosenSquare[1] + ":" + givenPiece.binaryStringRepresentation());
         }
