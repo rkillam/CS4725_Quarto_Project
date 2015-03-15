@@ -20,8 +20,8 @@ public class QuartoServer {
 	public static final String GAME_OVER_HEADER = "GAME_OVER: ";
 	public static final String TURN_TIME_LIMIT_HEADER = "TURN_TIME_LIMIT: ";
 
-	//time limit is in milliseconds
-	private static final int TIME_LIMIT_FOR_RESPONSE = 10000;
+	//time limit is in milliseconds (1s)
+	private static final int TIME_LIMIT_FOR_RESPONSE = 1000;  // 10000;
 
 	GameServer gameServer;
 	QuartoBoard quartoBoard;
