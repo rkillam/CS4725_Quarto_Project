@@ -6,6 +6,14 @@ public class QuartoPlayerAgent extends QuartoAgent {
     private static final int MAX_DEPTH = 1;
     private int[] minisChosenSquare = {-1,-1};
     private int minisPieceID = -1;
+    public final static int NUM_PIECES = 32;
+    public final static int ROW_LENGTH = 5;
+    public final static int COL_LENGTH = 5;
+
+    public final int NODES_PER_SECOND = 1000;
+
+    // FIXME HACKY!! this is a hacky way to ensure that each node is only examined once per level
+    public static int currentLevel = 1;
 
     private static ArrayList<Thread> runningThreads = new ArrayList<Thread>();
 
@@ -47,6 +55,24 @@ public class QuartoPlayerAgent extends QuartoAgent {
         quartoAgent.play();
 
         gameClient.closeConnection();
+
+        // Why doesn't this print?
+        System.out.println("DONE PLAYING!!!");
+    }
+
+    private int calcSearchableDepth() {
+        int maxDepth = 0;
+        int maxSearchableNodes = NODES_PER_SECOND * (this.timeLimitForResponse / 1000);
+        while(this.curState.calcNodesInGeneration(maxDepth) <= maxSearchableNodes) {
+            maxDepth += 1;
+        }
+
+        if(maxDepth > this.maxDepth) {
+            this.maxDepth = maxDepth;
+            System.out.printf("MaxDepth so far: %d\n", this.maxDepth);
+        }
+
+        return maxDepth - 1;
     }
 
     /**
@@ -63,6 +89,15 @@ public class QuartoPlayerAgent extends QuartoAgent {
             QuartoGameTransitionGenerator gen = new QuartoGameTransitionGenerator(curState, limboPiece);
             for(QuartoGameTransition transition : gen) {
                 QuartoGameState state = transition.toState;
+
+                // FIXME HACKY!!! this is a hacky way to ensure that each node is only explored once per level
+                if(state.lastLevelExaminedOn == currentLevel) {
+                    // FIXME put the below code in a notted version of this if
+                    continue;
+                }
+                else {
+                    state.lastLevelExaminedOn = currentLevel;
+                }
 
                 state.resetMinimax();
                 searchGameTree(state, transition.nextPiece, levelsLeft - 1);
@@ -85,19 +120,18 @@ public class QuartoPlayerAgent extends QuartoAgent {
                 else {
                     if(state.value < curState.value) {
                         if(state.value == 0) {
-                            curState.value = curState.alpha = 0;
+                            curState.value = curState.beta = 0;
                         }
                         else if(state.value < 0) {
-                            curState.value = curState.alpha = state.value + 1;
+                            curState.value = curState.beta = state.value + 1;
                         }
                         else {
-                            curState.value = curState.alpha = state.value - 1;
+                            curState.value = curState.beta = state.value - 1;
                         }
 
                         curState.bestTransition = transition;
                     }
                 }
-//                System.out.println(curState.value);
             }
         }
     }
@@ -146,6 +180,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
 
         QuartoPiece limboPiece = this.curState.board.getPiece(pieceID);
         searchGameTree(curState, limboPiece, MAX_DEPTH);
+        searchGameTree(curState, this.calcSearchableDepth());
 
         return this.curState.bestTransition.placedPieceLocation[0] + "," + this.curState.bestTransition.placedPieceLocation[1];
     }
@@ -169,7 +204,12 @@ public class QuartoPlayerAgent extends QuartoAgent {
             this.quartoBoard.printBoardState();
 
             choosePieceTurn();
+
+            currentLevel++;
         }
+
+        // Why doesn't this print?
+        System.out.printf("\n\nmaxDepth acheived: %d\n\n\n", this.maxDepth);
 	}
 
     @Override

@@ -19,6 +19,9 @@ public class QuartoGameState {
     public boolean isMaxState;
     public QuartoGameTransition bestTransition;
 
+    // FIXME HACKY!! this is a hacky way to ensure that states are only examined once per level
+    public int lastLevelExaminedOn = 0;
+
     //
     // Methods
     //
@@ -61,6 +64,80 @@ public class QuartoGameState {
         this.transitions = new HashMap<String, QuartoGameTransition>();
 
         registeredStates.put(this.getHash(), this);
+        
+    /**
+     * Returns the number of UNIQUE descendants from this state after the
+     * given number of generations
+     *
+     * numOfDesc calculates the number of descendants regardless of path:
+     *          (#FreePieces! * #FreeSquares) / [(#FreePieces - gens)! *(#FreeSquares - gens)!]
+     *
+     * permsOfMoves is what ensures that the given number of descendants is unique. After a 2
+     * generations we can have 2 states that each have the same pieces in the same square, that
+     * is because one state will have put piece x in its square first, while the other state will
+     * have placed piece y first.
+     *
+     * If we extend this to n moves, there are n! orders for those pieces to have been placed in
+     * those squares, so we need to divide by n!.
+     *
+     * @param generations number of generations to calculate for
+     * @return number of UNIQUE descendants after the given number of generations
+     
+    public int calcNodesInGeneration(int generations) {
+        int numOfDesc = 1;
+        int permsOfMoves = 1;
+
+        int j = 0;
+        for(int i = this.freePieces.size(); i > this.freePieces.size() - generations; --i) {
+            numOfDesc *= i;
+            permsOfMoves *= ++j;
+        }
+
+        for(int i = this.freeSquares.size(); i > this.freeSquares.size() - generations; --i) {
+            numOfDesc *= i;
+        }
+
+        return numOfDesc / permsOfMoves;
+    }
+    */
+
+    /**
+     *
+     * @param nextSquare
+     * @param nextPiece
+     * @return
+     */
+    public QuartoGameState nextState(int[] nextSquare, QuartoPiece nextPiece) {
+        ArrayList<QuartoPiece> freePieces = new ArrayList<QuartoPiece>();
+
+        //deep copy of all freePieces
+        for (QuartoPiece piece: this.freePieces) {
+            if (piece.getPieceID() != nextPiece.getPieceID()) {
+                freePieces.add(piece);
+            }
+        }
+
+        //deep copy of all squares minus nextSquare
+        ArrayList<int[]> freeSquares = new ArrayList<int[]>();
+
+        for (int[] square: this.freeSquares) {
+            if (square[0] != nextSquare[0] || square[1] != nextSquare[1]) {
+                freeSquares.add(square.clone());
+            }
+        }
+
+        QuartoBoard newBoard = new QuartoBoard(this.board);
+        newBoard.insertPieceOnBoard(nextSquare[0], nextSquare[1], nextPiece.getPieceID());
+
+        QuartoGameState newState = new QuartoGameState(newBoard, freeSquares, freePieces,
+                this.alpha, this.beta, !this.isMaxState);
+
+        String newStateHash = newState.getHash();
+        if(registeredStates.get(newStateHash) == null) {
+            registeredStates.put(newStateHash, newState);
+        }
+
+        return newState;
     }
 
     /**
