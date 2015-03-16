@@ -3,26 +3,17 @@ import java.util.ArrayList;
 
 public class QuartoPlayerAgent extends QuartoAgent {
     private static QuartoGameState curState;
-    private static final int MAX_DEPTH = 1;
+    private static final int MAX_DEPTH = 5;
     private int[] minisChosenSquare = {-1,-1};
     private int minisPieceID = -1;
-    public final static int NUM_PIECES = 32;
-    public final static int ROW_LENGTH = 5;
-    public final static int COL_LENGTH = 5;
-
     public final int NODES_PER_SECOND = 1000;
-
-    // FIXME HACKY!! this is a hacky way to ensure that each node is only examined once per level
-    public static int currentLevel = 1;
-
-    private static ArrayList<Thread> runningThreads = new ArrayList<Thread>();
+    public static int currentDepth = 1;
 
     //Example AI
     public QuartoPlayerAgent(GameClient gameClient, String stateFileName) {
         // because super calls one of the super class constructors(you can overload constructors), you need to pass the parameters required.
         super(gameClient, stateFileName);
         setPlayerNumber();
-
 
         // if we are player number 1 we want to move to a max node, so our first node is min node
         boolean isMax = (playerNumber != 1);
@@ -61,46 +52,43 @@ public class QuartoPlayerAgent extends QuartoAgent {
     }
 
     private int calcSearchableDepth() {
-        int maxDepth = 0;
+        int depthLimit = 0;
         int maxSearchableNodes = NODES_PER_SECOND * (this.timeLimitForResponse / 1000);
-        while(this.curState.calcNodesInGeneration(maxDepth) <= maxSearchableNodes) {
-            maxDepth += 1;
+        while(this.curState.calcNodesInGeneration(depthLimit) <= maxSearchableNodes) {
+            depthLimit += 1;
         }
 
-        if(maxDepth > this.maxDepth) {
-            this.maxDepth = maxDepth;
-            System.out.printf("MaxDepth so far: %d\n", this.maxDepth);
-        }
+        //if(depthLimit > this.MAX_DEPTH) {
+            //this.MAX_DEPTH = maxDepth;
+        //    System.out.printf("MaxDepth so far: %d\n", depthLimit);
+        //}
 
-        return maxDepth - 1;
+        return depthLimit - 1;
     }
 
     /**
-     * @param        curState
-     * @param        levelsLeft
+     * @param curState
+     * @param levelsLeft
+     * @param limboPiece
+     * @param rootDepth The current root nodes depth in relation to the original tree. Used to ensure unique evaluations.
      */
-    private static void searchGameTree(QuartoGameState curState, QuartoPiece limboPiece, int levelsLeft)
+    private static void searchGameTree(QuartoGameState curState, QuartoPiece limboPiece, int levelsLeft, int rootDepth)
     {
         if(levelsLeft == 0 || curState.hasQuarto()) {
             //Reached max depth or a terminal winning node
-            curState.evaluate();
+            curState.evaluate(rootDepth);
         }
         else {
             QuartoGameTransitionGenerator gen = new QuartoGameTransitionGenerator(curState, limboPiece);
             for(QuartoGameTransition transition : gen) {
                 QuartoGameState state = transition.toState;
 
-                // FIXME HACKY!!! this is a hacky way to ensure that each node is only explored once per level
-                if(state.lastLevelExaminedOn == currentLevel) {
-                    // FIXME put the below code in a notted version of this if
+                if(state.lastLevelExaminedFrom == rootDepth) {
                     continue;
-                }
-                else {
-                    state.lastLevelExaminedOn = currentLevel;
                 }
 
                 state.resetMinimax();
-                searchGameTree(state, transition.nextPiece, levelsLeft - 1);
+                searchGameTree(state, transition.nextPiece, levelsLeft - 1, rootDepth);
 
                 if(curState.isMaxState) {
                     if(state.value > curState.value) {
@@ -179,8 +167,8 @@ public class QuartoPlayerAgent extends QuartoAgent {
         }
 
         QuartoPiece limboPiece = this.curState.board.getPiece(pieceID);
-        searchGameTree(curState, limboPiece, MAX_DEPTH);
-        searchGameTree(curState, this.calcSearchableDepth());
+        //searchGameTree(curState, limboPiece, MAX_DEPTH);
+        searchGameTree(curState, limboPiece, this.calcSearchableDepth(), this.currentDepth);
 
         return this.curState.bestTransition.placedPieceLocation[0] + "," + this.curState.bestTransition.placedPieceLocation[1];
     }
@@ -205,11 +193,11 @@ public class QuartoPlayerAgent extends QuartoAgent {
 
             choosePieceTurn();
 
-            currentLevel++;
+            currentDepth++;
         }
 
         // Why doesn't this print?
-        System.out.printf("\n\nmaxDepth acheived: %d\n\n\n", this.maxDepth);
+        System.out.printf("\n\nmaxDepth acheived: %d\n\n\n", this.MAX_DEPTH);
 	}
 
     @Override

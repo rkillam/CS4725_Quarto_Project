@@ -18,9 +18,7 @@ public class QuartoGameState {
     public int beta;
     public boolean isMaxState;
     public QuartoGameTransition bestTransition;
-
-    // FIXME HACKY!! this is a hacky way to ensure that states are only examined once per level
-    public int lastLevelExaminedOn = 0;
+    public int lastLevelExaminedFrom = 0;
 
     //
     // Methods
@@ -41,14 +39,14 @@ public class QuartoGameState {
         for (int i = 0; i < this.board.board.length; i++) {
             for (int j = 0; j < this.board.board[i].length; j++) {
                 if (!this.board.isSpaceTaken(i, j)) {
-                    int[] temp = {i,j};
+                    int[] temp = {i, j};
                     this.freeSquares.add(temp);
                 }
             }
         }
 
         this.freePieces = new ArrayList<QuartoPiece>();
-        for (QuartoPiece piece: this.board.pieces) {
+        for (QuartoPiece piece : this.board.pieces) {
             if (!piece.isInPlay()) {
                 this.freePieces.add(piece);
             }
@@ -64,6 +62,7 @@ public class QuartoGameState {
         this.transitions = new HashMap<String, QuartoGameTransition>();
 
         registeredStates.put(this.getHash(), this);
+    }
         
     /**
      * Returns the number of UNIQUE descendants from this state after the
@@ -82,7 +81,7 @@ public class QuartoGameState {
      *
      * @param generations number of generations to calculate for
      * @return number of UNIQUE descendants after the given number of generations
-     
+    */
     public int calcNodesInGeneration(int generations) {
         int numOfDesc = 1;
         int permsOfMoves = 1;
@@ -99,57 +98,19 @@ public class QuartoGameState {
 
         return numOfDesc / permsOfMoves;
     }
-    */
 
     /**
-     *
-     * @param nextSquare
-     * @param nextPiece
-     * @return
+     * @param level The root curState the lead to this nodes evaluation
      */
-    public QuartoGameState nextState(int[] nextSquare, QuartoPiece nextPiece) {
-        ArrayList<QuartoPiece> freePieces = new ArrayList<QuartoPiece>();
-
-        //deep copy of all freePieces
-        for (QuartoPiece piece: this.freePieces) {
-            if (piece.getPieceID() != nextPiece.getPieceID()) {
-                freePieces.add(piece);
-            }
-        }
-
-        //deep copy of all squares minus nextSquare
-        ArrayList<int[]> freeSquares = new ArrayList<int[]>();
-
-        for (int[] square: this.freeSquares) {
-            if (square[0] != nextSquare[0] || square[1] != nextSquare[1]) {
-                freeSquares.add(square.clone());
-            }
-        }
-
-        QuartoBoard newBoard = new QuartoBoard(this.board);
-        newBoard.insertPieceOnBoard(nextSquare[0], nextSquare[1], nextPiece.getPieceID());
-
-        QuartoGameState newState = new QuartoGameState(newBoard, freeSquares, freePieces,
-                this.alpha, this.beta, !this.isMaxState);
-
-        String newStateHash = newState.getHash();
-        if(registeredStates.get(newStateHash) == null) {
-            registeredStates.put(newStateHash, newState);
-        }
-
-        return newState;
-    }
-
-    /**
-     *
-     */
-    public void evaluate()
+    public void evaluate(int level)
     {
         if(this.hasQuarto()) {
             value = isMaxState ? 27 : -27;
         } else {
             value = 0;
         }
+
+        this.lastLevelExaminedFrom = level;
     }
 
     /**
