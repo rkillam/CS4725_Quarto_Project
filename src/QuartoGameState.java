@@ -1,7 +1,5 @@
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 
 
 public class QuartoGameState {
@@ -51,7 +49,6 @@ public class QuartoGameState {
                 this.freePieces.add(piece);
             }
         }
-
 
         this.alpha = alpha;
         this.beta = beta;
