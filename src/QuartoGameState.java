@@ -4,7 +4,7 @@ import java.util.HashMap;
 
 public class QuartoGameState {
 
-    private static HashMap<String, QuartoGameState> registeredStates = new HashMap<String, QuartoGameState>();
+    public static HashMap<String, QuartoGameState> registeredStates = new HashMap<String, QuartoGameState>();
 
     public QuartoBoard board;
     public ArrayList<int[]> freeSquares;
@@ -58,7 +58,7 @@ public class QuartoGameState {
 
         this.transitions = new HashMap<String, QuartoGameTransition>();
 
-        registeredStates.put(this.getHash(), this);
+        QuartoGameState.registeredStates.put(this.getHash(), this);
     }
         
     /**
@@ -93,7 +93,7 @@ public class QuartoGameState {
             numOfDesc *= i;
         }
 
-        return numOfDesc / permsOfMoves;
+        return (permsOfMoves == 0) ? 1 : numOfDesc / permsOfMoves;
     }
 
     /**
@@ -151,7 +151,7 @@ public class QuartoGameState {
      *  currently register states for garbage collection
      */
     public void clearStates() {
-        registeredStates.clear();
+        QuartoGameState.registeredStates.clear();
     }
 
     /**

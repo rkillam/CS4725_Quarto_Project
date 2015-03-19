@@ -1,15 +1,15 @@
 import java.lang.Override;
-import java.util.ArrayList;
+import java.util.Random;
 
 public class QuartoPlayerAgent extends QuartoAgent {
     private static QuartoGameState curState;
     private static int maxDepth = -1;
     private int[] minisChosenSquare = {-1,-1};
     private int minisPieceID = -1;
-    public final int NODES_PER_SECOND = 1000;
+    public final int NODES_PER_SECOND = 2500;
     public static int currentDepth = 1;
-    public static int searchedNodes = 0;
-    public static int maxSearchableNodes = 0;
+
+    private static Random rand = new Random();
 
     //Example AI
     public QuartoPlayerAgent(GameClient gameClient, String stateFileName) {
@@ -20,7 +20,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
         // if we are player number 1 we want to move to a max node, so our first node is min node
         boolean isMax = (playerNumber == 1);
 
-        this.curState = new QuartoGameState(new QuartoBoard(this.quartoBoard),
+        QuartoPlayerAgent.curState = new QuartoGameState(new QuartoBoard(this.quartoBoard),
                                             Integer.MIN_VALUE, Integer.MAX_VALUE, isMax);
     }
 
@@ -55,19 +55,20 @@ public class QuartoPlayerAgent extends QuartoAgent {
 
     private int calcSearchableDepth() {
         int depthLimit = 0;
-        this.searchedNodes = 0;
-        this.maxSearchableNodes = NODES_PER_SECOND * (this.timeLimitForResponse / 1000);
-        //while(this.curState.calcNodesInGeneration(depthLimit) <= this.maxSearchableNodes) {
-        //    System.out.println("--nodes in generation: " + this.curState.calcNodesInGeneration(depthLimit));
-        //    depthLimit += 1;
-        //}
+        int totalNodes = QuartoPlayerAgent.curState.calcNodesInGeneration(depthLimit);
+        int maxSearchableNodes = NODES_PER_SECOND * (this.timeLimitForResponse / 1000);
+        while(totalNodes <= maxSearchableNodes) {
+            System.out.println("--nodes in generation: " + QuartoPlayerAgent.curState.calcNodesInGeneration(depthLimit));
+            depthLimit += 1;
+            totalNodes += QuartoPlayerAgent.curState.calcNodesInGeneration(depthLimit);
+        }
 
-        //if(depthLimit > this.maxDepth) {
-        //    this.maxDepth = depthLimit;
-        //    System.out.printf("--MaxDepth so far: %d\n", this.maxDepth);
-        //}
+        if(depthLimit > QuartoPlayerAgent.maxDepth) {
+            QuartoPlayerAgent.maxDepth = depthLimit;
+            System.out.printf("--MaxDepth so far: %d\n", QuartoPlayerAgent.maxDepth);
+        }
 
-        return 5;//depthLimit - 1;
+        return depthLimit - 1;
     }
 
     /**
@@ -87,48 +88,51 @@ public class QuartoPlayerAgent extends QuartoAgent {
             for(QuartoGameTransition transition : gen) {
                 QuartoGameState state = transition.toState;
 
-                if(searchedNodes < maxSearchableNodes) {
-                    if(state.lastLevelExaminedFrom != rootDepth)
-                        searchedNodes++;
-                    else
-                        continue;
-                } else {
-                    return;
-                }
+                System.out.println(state + " : " + state.getHash() + " : " + state.lastLevelExaminedFrom);
+                if (state.lastLevelExaminedFrom != rootDepth) {
+                    state.lastLevelExaminedFrom = rootDepth;
 
-                state.resetMinimax();
-                searchGameTree(state, transition.nextPiece, levelsLeft - 1, rootDepth);
+                    state.resetMinimax();
+                    searchGameTree(state, transition.nextPiece, levelsLeft - 1, rootDepth);
 
-                if(curState.isMaxState) {
-                    //Choose largest value
-                    if(state.value > Math.abs(curState.value)) {
-                        curState.value = curState.alpha = (state.value == 0) ? 0 : (Math.abs(state.value)-1)*(Math.abs(state.value)/state.value);
-                        curState.bestTransition = transition;
-                    }
-
-                    if(state.value+1 < curState.beta) {
-                        curState.beta = state.value+1;
-                    }
-                }
-                else {
-                    /*
-                     *  Choose the most negative value, or the largest value. We choose a large positive value over
-                     *  0 so that when the player agent picks a best move we are at least approaching a win instead
-                     *  or constantly approaching ties.
-                     */
-                    if (state.value < 0) {
-                        if(state.value < curState.value) {
-                            curState.value = curState.beta = state.value + 1;
+                    if (curState.isMaxState) {
+                        //Choose largest value
+                        if (state.value > Math.abs(curState.value)) {
+                            curState.value = curState.alpha = (state.value == 0) ? 0 : (Math.abs(state.value) - 1) * (Math.abs(state.value) / state.value);
+                            curState.bestTransition = transition;
+                        } else if (state.value == Math.abs(curState.value) && QuartoPlayerAgent.rand.nextInt(2)==0) {
+                            //50-50 chance we'll take a new equivalent transition
                             curState.bestTransition = transition;
                         }
-                    } else if (curState.value > 27 || state.value-1 > curState.value) {
-                        curState.value = curState.alpha = (state.value == 0) ? 0 : state.value - 1;
-                        curState.bestTransition = transition;
-                    }
 
-                    if (state.value - 1 > curState.alpha) {
-                        curState.alpha = state.value - 1;
+                        if (state.value + 1 < curState.beta) {
+                            curState.beta = state.value + 1;
+                        }
+                    } else {
+                        /*
+                        *  Choose the most negative value, or the largest value. We choose a large positive value over
+                        *  0 so that when the player agent picks a best move we are at least approaching a win instead
+                        *  or constantly approaching ties.
+                        */
+                        if (state.value < 0) {
+                            if (state.value < curState.value) {
+                                curState.value = curState.beta = state.value + 1;
+                                curState.bestTransition = transition;
+                            }
+                        } else if (curState.value > 27 || state.value - 1 > curState.value) {
+                            curState.value = curState.alpha = (state.value == 0) ? 0 : state.value - 1;
+                            curState.bestTransition = transition;
+                        } else if (state.value == Math.abs(curState.value) && QuartoPlayerAgent.rand.nextInt(2)==0) {
+                            //50-50 chance we'll take a new equivalent transition
+                            curState.bestTransition = transition;
+                        }
+
+                        if (state.value - 1 > curState.alpha) {
+                            curState.alpha = state.value - 1;
+                        }
                     }
+                } else {
+                    System.out.println("Skipped");
                 }
             }
         }
@@ -140,14 +144,14 @@ public class QuartoPlayerAgent extends QuartoAgent {
     @Override
     protected String pieceSelectionAlgorithm()
     {
-        if(this.curState.bestTransition != null) {
+        if(QuartoPlayerAgent.curState.bestTransition != null) {
 
-            QuartoPiece transitionPiece = this.curState.bestTransition.nextPiece;
-            this.curState = this.curState.bestTransition.toState;
+            QuartoPiece transitionPiece = QuartoPlayerAgent.curState.bestTransition.nextPiece;
+            QuartoPlayerAgent.curState = QuartoPlayerAgent.curState.bestTransition.toState;
 
             return String.format("%5s", Integer.toBinaryString(transitionPiece.getPieceID())).replace(' ', '0');
         } else {
-            return String.format("%5s", Integer.toBinaryString(this.curState.board.chooseNextPieceNotPlayed()));
+            return String.format("%5s", Integer.toBinaryString(QuartoPlayerAgent.curState.board.chooseNextPieceNotPlayed()));
         }
     }
 
@@ -158,8 +162,8 @@ public class QuartoPlayerAgent extends QuartoAgent {
     @Override
     protected String moveSelectionAlgorithm(int pieceID)
     {
-        QuartoGameState prevState = this.curState;
-        QuartoPiece givenPiece = this.curState.board.getPiece(pieceID);
+        QuartoGameState prevState = QuartoPlayerAgent.curState;
+        QuartoPiece givenPiece = QuartoPlayerAgent.curState.board.getPiece(pieceID);
 
         QuartoGameTransition quartoGameTransition = null;
 
@@ -169,17 +173,17 @@ public class QuartoPlayerAgent extends QuartoAgent {
         }
 
         if(quartoGameTransition == null) {
-            this.curState = new QuartoGameState(this.quartoBoard, Integer.MAX_VALUE, Integer.MIN_VALUE, !this.curState.isMaxState);
+            QuartoPlayerAgent.curState = new QuartoGameState(this.quartoBoard, Integer.MAX_VALUE, Integer.MIN_VALUE, !QuartoPlayerAgent.curState.isMaxState);
         } else {
-            this.curState = quartoGameTransition.toState;
+            QuartoPlayerAgent.curState = quartoGameTransition.toState;
         }
 
-        QuartoPiece limboPiece = this.curState.board.getPiece(pieceID);
-        //searchGameTree(curState, limboPiece, this.calcSearchableDepth(), this.currentDepth);
-        this.calcSearchableDepth();
-        searchGameTree(curState, limboPiece, 5, this.currentDepth);
+        QuartoPiece limboPiece = QuartoPlayerAgent.curState.board.getPiece(pieceID);
+        searchGameTree(QuartoPlayerAgent.curState, limboPiece, this.calcSearchableDepth(), QuartoPlayerAgent.currentDepth);
+        //searchGameTree(QuartoPlayerAgent.curState, limboPiece, 5, QuartoPlayerAgent.currentDepth);
 
-        return this.curState.bestTransition.placedPieceLocation[0] + "," + this.curState.bestTransition.placedPieceLocation[1];
+        System.out.println(QuartoPlayerAgent.curState.bestTransition.toState.value);
+        return QuartoPlayerAgent.curState.bestTransition.placedPieceLocation[0] + "," + QuartoPlayerAgent.curState.bestTransition.placedPieceLocation[1];
     }
 
     @Override
@@ -202,11 +206,11 @@ public class QuartoPlayerAgent extends QuartoAgent {
 
             choosePieceTurn();
 
-            currentDepth++;
+            QuartoPlayerAgent.currentDepth = QuartoPlayerAgent.currentDepth + 1;
         }
 
         // Why doesn't this print?
-        System.out.printf("\n\nmaxDepth acheived: %d\n\n\n", this.maxDepth);
+        System.out.printf("\n\nmaxDepth acheived: %d\n\n\n", QuartoPlayerAgent.maxDepth);
 	}
 
     @Override
