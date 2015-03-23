@@ -3,11 +3,11 @@ import java.util.Random;
 
 public class QuartoPlayerAgent extends QuartoAgent {
     private static QuartoGameState curState;
-    private static int maxDepth = -1;
+    private int maxDepth = -1;
     private int[] minisChosenSquare = {-1,-1};
     private int minisPieceID = -1;
-    public final int NODES_PER_SECOND = 2500;
-    public static int currentDepth = 1;
+    public final int NODES_PER_SECOND = 1000; //TO-DO Benchmark NODES_PER_SECOND
+    public int currentDepth = 1;
 
     private static Random rand = new Random();
 
@@ -48,9 +48,6 @@ public class QuartoPlayerAgent extends QuartoAgent {
         quartoAgent.play();
 
         gameClient.closeConnection();
-
-        // Why doesn't this print?
-        System.out.println("DONE PLAYING!!!");
     }
 
     private int calcSearchableDepth() {
@@ -58,14 +55,12 @@ public class QuartoPlayerAgent extends QuartoAgent {
         int totalNodes = QuartoPlayerAgent.curState.calcNodesInGeneration(depthLimit);
         int maxSearchableNodes = NODES_PER_SECOND * (this.timeLimitForResponse / 1000);
         while(totalNodes <= maxSearchableNodes) {
-            System.out.println("--nodes in generation: " + QuartoPlayerAgent.curState.calcNodesInGeneration(depthLimit));
             depthLimit += 1;
             totalNodes += QuartoPlayerAgent.curState.calcNodesInGeneration(depthLimit);
         }
 
-        if(depthLimit > QuartoPlayerAgent.maxDepth) {
-            QuartoPlayerAgent.maxDepth = depthLimit;
-            System.out.printf("--MaxDepth so far: %d\n", QuartoPlayerAgent.maxDepth);
+        if(depthLimit > this.maxDepth) {
+            this.maxDepth = depthLimit;
         }
 
         return depthLimit - 1;
@@ -79,7 +74,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
      */
     private static void searchGameTree(QuartoGameState curState, QuartoPiece limboPiece, int levelsLeft, int rootDepth)
     {
-        if(levelsLeft == 0 || curState.hasQuarto()) {
+        if(levelsLeft == 0 || curState.hasQuarto() || curState.board.getNumberOfPieces() == 25) {
             //Reached max depth or a terminal winning node
             curState.evaluate(rootDepth);
         }
@@ -88,7 +83,6 @@ public class QuartoPlayerAgent extends QuartoAgent {
             for(QuartoGameTransition transition : gen) {
                 QuartoGameState state = transition.toState;
 
-                System.out.println(state + " : " + state.getHash() + " : " + state.lastLevelExaminedFrom);
                 if (state.lastLevelExaminedFrom != rootDepth) {
                     state.lastLevelExaminedFrom = rootDepth;
 
@@ -100,13 +94,13 @@ public class QuartoPlayerAgent extends QuartoAgent {
                         if (state.value > Math.abs(curState.value)) {
                             curState.value = curState.alpha = (state.value == 0) ? 0 : (Math.abs(state.value) - 1) * (Math.abs(state.value) / state.value);
                             curState.bestTransition = transition;
-                        } else if (state.value == Math.abs(curState.value) && QuartoPlayerAgent.rand.nextInt(2)==0) {
+                        } else if (state.value == curState.value && QuartoPlayerAgent.rand.nextInt(2)==0) {
                             //50-50 chance we'll take a new equivalent transition
                             curState.bestTransition = transition;
                         }
 
-                        if (state.value + 1 < curState.beta) {
-                            curState.beta = state.value + 1;
+                        if (state.value < curState.beta) {
+                            curState.beta = state.value;
                         }
                     } else {
                         /*
@@ -131,8 +125,6 @@ public class QuartoPlayerAgent extends QuartoAgent {
                             curState.alpha = state.value - 1;
                         }
                     }
-                } else {
-                    System.out.println("Skipped");
                 }
             }
         }
@@ -179,10 +171,8 @@ public class QuartoPlayerAgent extends QuartoAgent {
         }
 
         QuartoPiece limboPiece = QuartoPlayerAgent.curState.board.getPiece(pieceID);
-        searchGameTree(QuartoPlayerAgent.curState, limboPiece, this.calcSearchableDepth(), QuartoPlayerAgent.currentDepth);
-        //searchGameTree(QuartoPlayerAgent.curState, limboPiece, 5, QuartoPlayerAgent.currentDepth);
+        searchGameTree(QuartoPlayerAgent.curState, limboPiece, this.calcSearchableDepth(), this.currentDepth);
 
-        System.out.println(QuartoPlayerAgent.curState.bestTransition.toState.value);
         return QuartoPlayerAgent.curState.bestTransition.placedPieceLocation[0] + "," + QuartoPlayerAgent.curState.bestTransition.placedPieceLocation[1];
     }
 
@@ -206,11 +196,8 @@ public class QuartoPlayerAgent extends QuartoAgent {
 
             choosePieceTurn();
 
-            QuartoPlayerAgent.currentDepth = QuartoPlayerAgent.currentDepth + 1;
+            this.currentDepth = this.currentDepth + 1;
         }
-
-        // Why doesn't this print?
-        System.out.printf("\n\nmaxDepth acheived: %d\n\n\n", QuartoPlayerAgent.maxDepth);
 	}
 
     @Override

@@ -60,16 +60,11 @@ public class QuartoGameTransitionGenerator implements Iterable<QuartoGameTransit
                     }
                 }
 
-                QuartoGameState newState;// = new QuartoGameState(newBoard, curState.alpha, curState.beta, !curState.isMaxState);
+                QuartoGameState newState;
                 if(QuartoGameState.registeredStates.get(hash) != null) {
                     newState = QuartoGameState.registeredStates.get(hash);
                 } else {
                     newState = new QuartoGameState(newBoard, curState.alpha, curState.beta, !curState.isMaxState);
-                }
-                if(!hash.equals(newState.getHash())) {
-                    System.out.println("I see what you did there");
-                } else {
-                    System.out.println(":)");
                 }
 
                 QuartoGameTransition newTransition = new QuartoGameTransition(newState, limboPiece, nextSquare, nextPiece);
