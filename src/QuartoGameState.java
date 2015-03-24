@@ -16,7 +16,7 @@ public class QuartoGameState {
     public int beta;
     public boolean isMaxState;
     public QuartoGameTransition bestTransition;
-    public int lastLevelExaminedFrom = 0;
+    public int lastLevelExaminedFrom;
 
     //
     // Methods
@@ -32,6 +32,8 @@ public class QuartoGameState {
     public QuartoGameState(QuartoBoard board, int alpha, int beta, boolean isMaxState) {
 
         this.board = board;
+
+        this.lastLevelExaminedFrom = 0;
 
         this.freeSquares = new ArrayList<int[]>();
         for (int i = 0; i < this.board.board.length; i++) {
@@ -60,7 +62,7 @@ public class QuartoGameState {
 
         QuartoGameState.registeredStates.put(this.getHash(), this);
     }
-        
+
     /**
      * Returns the number of UNIQUE descendants from this state after the
      * given number of generations
@@ -99,15 +101,60 @@ public class QuartoGameState {
     /**
      * @param level The root curState the lead to this nodes evaluation
      */
-    public void evaluate(int level)
-    {
+    public void evaluate(QuartoPiece limboPiece) {
         if(this.hasQuarto()) {
             value = isMaxState ? 27 : -27;
-        } else {
+            System.out.println("Found Quarto State: " + value);
+        }
+        else {
+            this.board.printBoardState();
+
             value = 0;
+            for(int[] square : this.freeSquares) {
+                System.out.println("evaluate with limboPiece: " +
+                        String.format("%5s", Integer.toBinaryString(limboPiece.getPieceID())).replace(' ', '0'));
+                System.out.printf("at square [%d, %d]\n", square[0], square[1]);
+
+                QuartoBoard tmpBoard = new QuartoBoard(this.board);
+                tmpBoard.insertPieceOnBoard(square[0], square[1], limboPiece.getPieceID());
+                tmpBoard.printBoardState();
+
+                if(this.hasQuarto(tmpBoard)) {
+                    value = this.isMaxState ? 27 : -27;
+                    System.out.println("NEW!! Found Quarto State with limbo: " + value);
+                    break;
+                }
+                System.out.println("\n");
+            }
+        }
+    }
+
+    /**
+     * @return       boolean
+     */
+    public boolean hasQuarto(QuartoBoard tmpBoard)
+    {
+        //loop through rows
+        for(int i = 0; i < tmpBoard.getNumberOfRows(); i++) {
+            if (tmpBoard.checkRow(i)) {
+                return true;
+            }
         }
 
-        this.lastLevelExaminedFrom = level;
+        //loop through columns
+        for(int i = 0; i < tmpBoard.getNumberOfColumns(); i++) {
+            //gameIsWon = this.quartoBoard.checkColumn(i);
+            if (tmpBoard.checkColumn(i)) {
+                return true;
+            }
+        }
+
+        //check Diagonals
+        if (tmpBoard.checkDiagonals()) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -144,6 +191,8 @@ public class QuartoGameState {
     public void resetMinimax() {
         alpha = Integer.MIN_VALUE;
         beta = Integer.MAX_VALUE;
+
+        value = isMaxState ? alpha : beta;
     }
 
     /*
