@@ -4,7 +4,8 @@ import java.util.HashMap;
 
 public class QuartoGameState {
 
-    public static HashMap<String, QuartoGameState> registeredStates = new HashMap<String, QuartoGameState>();
+    private static HashMap<String, QuartoGameState> registeredStates = new HashMap<String, QuartoGameState>();
+    private static boolean registeredStatesBusy = false;
 
     public QuartoBoard board;
     public ArrayList<int[]> freeSquares;
@@ -60,7 +61,7 @@ public class QuartoGameState {
 
         this.transitions = new HashMap<String, QuartoGameTransition>();
 
-        QuartoGameState.registeredStates.put(this.getHash(), this);
+//        registerState(this.getHash(), this);
     }
 
     /**
@@ -104,27 +105,29 @@ public class QuartoGameState {
     public void evaluate(QuartoPiece limboPiece) {
         if(this.hasQuarto()) {
             value = isMaxState ? 27 : -27;
-            System.out.println("Found Quarto State: " + value);
+//            System.err.println("Found Quarto State: " + value);
         }
         else {
-            this.board.printBoardState();
+//            this.board.printBoardState();
 
+            // FIXME/OPTIMIZE
             value = 0;
             for(int[] square : this.freeSquares) {
-                System.out.println("evaluate with limboPiece: " +
-                        String.format("%5s", Integer.toBinaryString(limboPiece.getPieceID())).replace(' ', '0'));
-                System.out.printf("at square [%d, %d]\n", square[0], square[1]);
+//                System.err.println("evaluate with limboPiece: " +
+//                        String.format("%5s", Integer.toBinaryString(limboPiece.getPieceID())).replace(' ', '0'));
+//                System.err.printf("at square [%d, %d]\n", square[0], square[1]);
 
                 QuartoBoard tmpBoard = new QuartoBoard(this.board);
                 tmpBoard.insertPieceOnBoard(square[0], square[1], limboPiece.getPieceID());
-                tmpBoard.printBoardState();
+
+//                tmpBoard.printBoardState();
 
                 if(this.hasQuarto(tmpBoard)) {
                     value = this.isMaxState ? 27 : -27;
-                    System.out.println("NEW!! Found Quarto State with limbo: " + value);
+//                    System.err.println("NEW!! Found Quarto State with limbo: " + value);
                     break;
                 }
-                System.out.println("\n");
+//                System.err.println("\n");
             }
         }
     }
@@ -195,14 +198,6 @@ public class QuartoGameState {
         value = isMaxState ? alpha : beta;
     }
 
-    /*
-     *  Dump no longer referenced states by clearing
-     *  currently register states for garbage collection
-     */
-    public void clearStates() {
-        QuartoGameState.registeredStates.clear();
-    }
-
     /**
      * Generates a hash based on current board layout.
      *
@@ -218,5 +213,36 @@ public class QuartoGameState {
             }
         }
         return hash;
+    }
+
+    /**
+     * registeredStates thread safe accessor methods
+     */
+
+    /*
+     *  Dump no longer referenced states by clearing
+     *  currently register states for garbage collection
+     */
+    public static void clearStates() {
+        while(registeredStatesBusy);
+        registeredStatesBusy = true;
+        registeredStates.clear();
+        registeredStatesBusy = false;
+    }
+
+    public static void registerState(String key, QuartoGameState state) {
+        while(registeredStatesBusy);
+        registeredStatesBusy = true;
+        registeredStates.put(key, state);
+        registeredStatesBusy = false;
+    }
+
+    public static QuartoGameState getRegisteredState(String key) {
+        while(registeredStatesBusy);
+        registeredStatesBusy = true;
+        QuartoGameState state = registeredStates.get(key);
+        registeredStatesBusy = false;
+
+        return state;
     }
 }

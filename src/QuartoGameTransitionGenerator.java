@@ -48,8 +48,8 @@ public class QuartoGameTransitionGenerator implements Iterable<QuartoGameTransit
 
             @Override
             public boolean hasNext() {
-                return pieces.hasNext()      ||
-                        this.squares.hasNext();
+                return curState.freeSquares.size() > 0 &&
+                        (pieces.hasNext() || this.squares.hasNext());
             }
 
             @Override

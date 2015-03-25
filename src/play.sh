@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 echo "Starting server"
 java QuartoServer >> serverOut.txt &
 serverPid=$!
@@ -42,10 +44,13 @@ for i in {0..9}; do
         echo "playerNum: $playerNum"
         echo "endText: $endText"
         echo "winnerNum: $winnerNum"
-        if [[ "$endText" = "GAME_OVER: Game is a draw" ]]; then
+        if [[ "$endText" = "GAME_OVER: Game is a draw " ]]; then
             draws=$[$draws + 1];
             p1Draws=$[$p1Draws + 1];
             echo "Draw"
+            echo "wins: $wins"
+            echo "loses: $loses"
+            echo "draws: $draws"
 
         elif [[ "$playerNum" != "$winnerNum" ]]; then
             wins=$[$wins + 1];
@@ -53,12 +58,14 @@ for i in {0..9}; do
             echo "won"
             echo "wins: $wins"
             echo "loses: $loses"
+            echo "draws: $draws"
         else
             loses=$[$loses + 1];
             p1Loses=$[$p1Loses + 1];
             echo "lost"
             echo "wins: $wins"
             echo "loses: $loses"
+            echo "draws: $draws"
         fi;
     else
         player1=$opponentAgent
@@ -82,10 +89,13 @@ for i in {0..9}; do
         echo "playerNum: $playerNum"
         echo "endText: $endText"
         echo "winnerNum: $winnerNum"
-        if [[ "$endText" = "GAME_OVER: Game is a draw" ]]; then
+        if [[ "$endText" = "GAME_OVER: Game is a draw " ]]; then
             draws=$[$draws + 1];
             p2Draws=$[$p2Draws + 1];
             echo "Draw"
+            echo "wins: $wins"
+            echo "loses: $loses"
+            echo "draws: $draws"
 
         elif [[ "$playerNum" = "$winnerNum" ]]; then
             wins=$[$wins + 1];
@@ -93,12 +103,14 @@ for i in {0..9}; do
             echo "won"
             echo "wins: $wins"
             echo "loses: $loses"
+            echo "draws: $draws"
         else
             loses=$[$loses + 1];
             p2Loses=$[$p2Loses + 1];
             echo "lost"
             echo "wins: $wins"
             echo "loses: $loses"
+            echo "draws: $draws"
         fi;
     fi
 

@@ -1,8 +1,11 @@
 import java.lang.Override;
 import java.util.Random;
 
-public class QuartoPlayerAgent extends QuartoAgent {
+public class OldQuartoPlayerAgent extends QuartoAgent {
+    private QuartoGameState curState;
     private int maxDepth = -1;
+    private int[] minisChosenSquare = {-1,-1};
+    private int minisPieceID = -1;
     public final int NODES_PER_SECOND = 1000; //TO-DO Benchmark NODES_PER_SECOND
     public int currentDepth = 1;
     public QuartoPiece pieceToGiveMini = null;
@@ -10,7 +13,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
     private static Random rand = new Random();
 
     //Example AI
-    public QuartoPlayerAgent(GameClient gameClient, String stateFileName) {
+    public OldQuartoPlayerAgent(GameClient gameClient, String stateFileName) {
         // because super calls one of the super class constructors(you can overload constructors), you need to pass the parameters required.
         super(gameClient, stateFileName);
     }
@@ -58,9 +61,9 @@ public class QuartoPlayerAgent extends QuartoAgent {
     }
 
     /**
-     * @param curState State from which we are starting the search
-     * @param levelsLeft Levels left to search before bottoming out
-     * @param limboPiece Piece to be placed
+     * @param curState
+     * @param levelsLeft
+     * @param limboPiece
      * @param rootDepth The current root nodes depth in relation to the original tree. Used to ensure unique evaluations.
      */
     private void searchGameTree(QuartoGameState curState, QuartoPiece limboPiece, int levelsLeft, int rootDepth) {
@@ -73,57 +76,47 @@ public class QuartoPlayerAgent extends QuartoAgent {
             for(QuartoGameTransition transition : gen) {
                 QuartoGameState state = transition.toState;
 
-//                if (state.lastLevelExaminedFrom != rootDepth) {
-//                    state.lastLevelExaminedFrom = rootDepth;
+                if (state.lastLevelExaminedFrom != rootDepth) {
+                    state.lastLevelExaminedFrom = rootDepth;
 
-                state.resetMinimax();
-                searchGameTree(state, transition.nextPiece, levelsLeft - 1, rootDepth);
+                    state.resetMinimax();
+                    searchGameTree(state, transition.nextPiece, levelsLeft - 1, rootDepth);
 
-                if(curState.isMaxState) {
-                    if(state.value > curState.value) {
-                        curState.bestTransition = transition;
-
-                        if(state.value > 0) {
-                            curState.value = state.value - 1;
-                        }
-                        else if(state.value < 0) {
-                            curState.value = state.value + 1;
-                        }
-                        else {
-                            curState.value = 0;
-                        }
-
-                        if(state.value > state.alpha) {
-                            state.alpha = state.value;
-                        }
-                    }
-                    else if(state.value == curState.value) {
-                        if(rand.nextInt(2) == 0) {
+                    if(curState.isMaxState) {
+                        if(state.value > curState.value) {
                             curState.bestTransition = transition;
+
+                            if(state.value > 0) {
+                                curState.value = state.value - 1;
+                            }
+                            else if(state.value < 0) {
+                                curState.value = state.value + 1;
+                            }
+                            else {
+                                curState.value = 0;
+                            }
+                        }
+                        else if(state.value == curState.value) {
+                            if(rand.nextInt(2) == 0) {
+                                curState.bestTransition = transition;
+                            }
                         }
                     }
-                }
-                else {
-                    if(state.value < curState.value) {
-                        curState.bestTransition = transition;
-
-                        if(state.value > 0) {
-                            curState.value = state.value - 1;
-                        }
-                        else if(state.value < 0) {
-                            curState.value = state.value + 1;
-                        }
-                        else {
-                            curState.value = 0;
-                        }
-
-                        if(state.value < state.beta) {
-                            state.beta = state.value;
-                        }
-                    }
-                    else if(state.value == curState.value) {
-                        if(rand.nextInt(2) == 0) {
+                    else {
+                        if (state.value < curState.value) {
                             curState.bestTransition = transition;
+
+                            if (state.value > 0) {
+                                curState.value = state.value - 1;
+                            } else if (state.value < 0) {
+                                curState.value = state.value + 1;
+                            } else {
+                                curState.value = 0;
+                            }
+                        } else if (state.value == curState.value) {
+                            if (rand.nextInt(2) == 0) {
+                                curState.bestTransition = transition;
+                            }
                         }
                     }
                 }
@@ -133,14 +126,13 @@ public class QuartoPlayerAgent extends QuartoAgent {
 
     /**
      * @return       String
-     * @param        pieceID Piece given by Mini
+     * @param        pieceID
      */
     @Override
     protected String moveSelectionAlgorithm(int pieceID) {
         QuartoGameState tmpState = new QuartoGameState(this.quartoBoard, Integer.MAX_VALUE, Integer.MIN_VALUE, true);
         QuartoPiece limboPiece = tmpState.board.getPiece(pieceID);
 
-        // Note: searching more than 1 level gives us errors
         this.searchGameTree(tmpState, limboPiece, this.calcSearchableDepth(tmpState), this.currentDepth);
         this.pieceToGiveMini = tmpState.bestTransition.nextPiece;
 
@@ -155,7 +147,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
     @Override
     protected String pieceSelectionAlgorithm() {
         if(this.pieceToGiveMini != null){
-            return String.format("%5s", this.pieceToGiveMini.binaryStringRepresentation());
+            return String.format("%5s", Integer.toBinaryString(this.pieceToGiveMini.getPieceID())).replace(' ', '0');
         }
         else {
             return String.format("%5s", Integer.toBinaryString(
