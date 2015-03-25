@@ -22,6 +22,8 @@ opponentAgent="QuartoRandomAgent"
 
 echo "Starting games"
 for i in {0..9}; do
+    echo "Player game #$i"
+
     if (($RANDOM % 2 == 0)); then
         player1=$myAgent
         player2=$opponentAgent

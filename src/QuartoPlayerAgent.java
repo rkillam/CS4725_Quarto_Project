@@ -44,14 +44,15 @@ public class QuartoPlayerAgent extends QuartoAgent {
     private int calcSearchableDepth(QuartoGameState state) {
         int depthLimit = 0;
         int totalNodes = state.calcNodesInGeneration(depthLimit);
-        int maxSearchableNodes = NODES_PER_SECOND * (this.timeLimitForResponse / 1000);
+        int maxSearchableNodes = NODES_PER_SECOND * (10000 / 1000); // FIXME: I hard coded the this.timeLimitForResponse
         while(totalNodes <= maxSearchableNodes) {
             depthLimit += 1;
             totalNodes += state.calcNodesInGeneration(depthLimit);
         }
 
         if(depthLimit > this.maxDepth) {
-            this.maxDepth = depthLimit;
+            this.maxDepth = depthLimit - 1;
+            System.out.println("New maxDepth: " + this.maxDepth);
         }
 
         return depthLimit - 1 > 0 ? depthLimit - 1 : 0;
@@ -64,6 +65,8 @@ public class QuartoPlayerAgent extends QuartoAgent {
      * @param rootDepth The current root nodes depth in relation to the original tree. Used to ensure unique evaluations.
      */
     private void searchGameTree(QuartoGameState curState, QuartoPiece limboPiece, int levelsLeft, int rootDepth) {
+        System.out.println("Levels left: " + levelsLeft);
+
         if(levelsLeft == 0 || curState.hasQuarto() || curState.board.getNumberOfPieces() == 25) {
             //Reached max depth or a terminal winning node
             curState.evaluate(limboPiece);
@@ -141,12 +144,18 @@ public class QuartoPlayerAgent extends QuartoAgent {
         QuartoPiece limboPiece = tmpState.board.getPiece(pieceID);
 
         // Note: searching more than 1 level gives us errors
+        System.out.println("Starting searchGameTree from this state");
+        tmpState.board.printBoardState();
+        System.out.println("\n");
         this.searchGameTree(tmpState, limboPiece, this.calcSearchableDepth(tmpState), this.currentDepth);
         this.pieceToGiveMini = tmpState.bestTransition.nextPiece;
 
-        return tmpState.bestTransition.placedPieceLocation[0] +
+        String moveString = tmpState.bestTransition.placedPieceLocation[0] +
                 "," +
                 tmpState.bestTransition.placedPieceLocation[1];
+
+        System.out.println("About to return move: " + moveString);
+        return moveString;
     }
 
     /**
@@ -155,7 +164,9 @@ public class QuartoPlayerAgent extends QuartoAgent {
     @Override
     protected String pieceSelectionAlgorithm() {
         if(this.pieceToGiveMini != null){
-            return String.format("%5s", this.pieceToGiveMini.binaryStringRepresentation());
+            String pieceString = String.format("%5s", this.pieceToGiveMini.binaryStringRepresentation());
+            System.out.println("about to send piece: " + pieceString);
+            return pieceString;
         }
         else {
             return String.format("%5s", Integer.toBinaryString(

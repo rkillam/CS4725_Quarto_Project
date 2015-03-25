@@ -100,34 +100,39 @@ public class QuartoGameState {
     }
 
     /**
-     * @param level The root curState the lead to this nodes evaluation
+     * @param limboPiece Piece to be placed at current state
      */
     public void evaluate(QuartoPiece limboPiece) {
+        System.out.println("New evaluate\n");
         if(this.hasQuarto()) {
             value = isMaxState ? 27 : -27;
-//            System.err.println("Found Quarto State: " + value);
+            System.out.println("Found Quarto State: " + value);
+            this.board.printBoardState();
+            System.out.println("\n");
         }
         else {
-//            this.board.printBoardState();
+            System.out.println("\nStarting board state");
+            this.board.printBoardState();
+            System.out.println("\n");
 
             // FIXME/OPTIMIZE
             value = 0;
             for(int[] square : this.freeSquares) {
-//                System.err.println("evaluate with limboPiece: " +
-//                        String.format("%5s", Integer.toBinaryString(limboPiece.getPieceID())).replace(' ', '0'));
-//                System.err.printf("at square [%d, %d]\n", square[0], square[1]);
+                System.out.println("evaluate with limboPiece: " +
+                        String.format("%5s", Integer.toBinaryString(limboPiece.getPieceID())).replace(' ', '0'));
+                System.out.printf("at square [%d, %d]\n", square[0], square[1]);
 
                 QuartoBoard tmpBoard = new QuartoBoard(this.board);
                 tmpBoard.insertPieceOnBoard(square[0], square[1], limboPiece.getPieceID());
 
-//                tmpBoard.printBoardState();
+                tmpBoard.printBoardState();
 
                 if(this.hasQuarto(tmpBoard)) {
                     value = this.isMaxState ? 27 : -27;
-//                    System.err.println("NEW!! Found Quarto State with limbo: " + value);
+                    System.out.println("NEW!! Found Quarto State with limbo: " + value);
                     break;
                 }
-//                System.err.println("\n");
+                System.out.println("\n");
             }
         }
     }
@@ -146,7 +151,6 @@ public class QuartoGameState {
 
         //loop through columns
         for(int i = 0; i < tmpBoard.getNumberOfColumns(); i++) {
-            //gameIsWon = this.quartoBoard.checkColumn(i);
             if (tmpBoard.checkColumn(i)) {
                 return true;
             }
@@ -174,7 +178,6 @@ public class QuartoGameState {
 
         //loop through columns
         for(int i = 0; i < this.board.getNumberOfColumns(); i++) {
-            //gameIsWon = this.quartoBoard.checkColumn(i);
             if (this.board.checkColumn(i)) {
                 return true;
             }
