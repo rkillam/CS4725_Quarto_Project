@@ -103,36 +103,19 @@ public class QuartoGameState {
      * @param limboPiece Piece to be placed at current state
      */
     public void evaluate(QuartoPiece limboPiece) {
-        System.out.println("New evaluate\n");
         if(this.hasQuarto()) {
-            value = isMaxState ? 27 : -27;
-            System.out.println("Found Quarto State: " + value);
-            this.board.printBoardState();
-            System.out.println("\n");
+            value = isMaxState ? -27 : 27;
         }
         else {
-            System.out.println("\nStarting board state");
-            this.board.printBoardState();
-            System.out.println("\n");
-
-            // FIXME/OPTIMIZE
             value = 0;
             for(int[] square : this.freeSquares) {
-                System.out.println("evaluate with limboPiece: " +
-                        String.format("%5s", Integer.toBinaryString(limboPiece.getPieceID())).replace(' ', '0'));
-                System.out.printf("at square [%d, %d]\n", square[0], square[1]);
-
                 QuartoBoard tmpBoard = new QuartoBoard(this.board);
                 tmpBoard.insertPieceOnBoard(square[0], square[1], limboPiece.getPieceID());
 
-                tmpBoard.printBoardState();
-
                 if(this.hasQuarto(tmpBoard)) {
                     value = this.isMaxState ? 27 : -27;
-                    System.out.println("NEW!! Found Quarto State with limbo: " + value);
                     break;
                 }
-                System.out.println("\n");
             }
         }
     }
