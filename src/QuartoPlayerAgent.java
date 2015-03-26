@@ -3,7 +3,7 @@ import java.util.Random;
 
 public class QuartoPlayerAgent extends QuartoAgent {
     private int maxDepth = -1;
-    public final int NODES_PER_SECOND = 1000; //TO-DO Benchmark NODES_PER_SECOND
+    public final int NODES_PER_SECOND = 1500; //TO-DO Benchmark NODES_PER_SECOND
     public int currentDepth = 1;
     public QuartoPiece pieceToGiveMini = null;
 
@@ -52,7 +52,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
 
         if(depthLimit > this.maxDepth) {
             this.maxDepth = depthLimit - 1;
-            System.out.println("New maxDepth: " + this.maxDepth);
+            //System.out.println("New maxDepth: " + this.maxDepth);
         }
 
         return depthLimit - 1 > 0 ? depthLimit - 1 : 0;
@@ -65,19 +65,13 @@ public class QuartoPlayerAgent extends QuartoAgent {
      * @param rootDepth The current root nodes depth in relation to the original tree. Used to ensure unique evaluations.
      */
     private void searchGameTree(QuartoGameState curState, QuartoPiece limboPiece, int levelsLeft, int rootDepth) {
-        System.out.println("Levels left: " + levelsLeft);
-
-        if(levelsLeft == 0 || curState.hasQuarto() || curState.board.getNumberOfPieces() == 25) {
-            //Reached max depth or a terminal winning node
+        if(levelsLeft == 0 || curState.hasQuarto() || curState.board.checkIfBoardIsFull()) {
             curState.evaluate(limboPiece);
         }
         else {
             QuartoGameTransitionGenerator gen = new QuartoGameTransitionGenerator(curState, limboPiece);
             for(QuartoGameTransition transition : gen) {
                 QuartoGameState state = transition.toState;
-
-//                if (state.lastLevelExaminedFrom != rootDepth) {
-//                    state.lastLevelExaminedFrom = rootDepth;
 
                 state.resetMinimax();
                 searchGameTree(state, transition.nextPiece, levelsLeft - 1, rootDepth);
@@ -140,13 +134,14 @@ public class QuartoPlayerAgent extends QuartoAgent {
      */
     @Override
     protected String moveSelectionAlgorithm(int pieceID) {
-        QuartoGameState tmpState = new QuartoGameState(this.quartoBoard, Integer.MAX_VALUE, Integer.MIN_VALUE, true);
+        /*
+         * NOTE: the new game state is set as a minNode because then we pass this state to the
+         * generator to start trying to place the new piece we flip to a maxNode. This isn't
+         * intuitive to me but appears to result in a winning AI.
+         */
+        QuartoGameState tmpState = new QuartoGameState(this.quartoBoard, Integer.MAX_VALUE, Integer.MIN_VALUE, false);
         QuartoPiece limboPiece = tmpState.board.getPiece(pieceID);
 
-        // Note: searching more than 1 level gives us errors
-        System.out.println("Starting searchGameTree from this state");
-        tmpState.board.printBoardState();
-        System.out.println("\n");
         this.searchGameTree(tmpState, limboPiece, this.calcSearchableDepth(tmpState), this.currentDepth);
         this.pieceToGiveMini = tmpState.bestTransition.nextPiece;
 
@@ -154,7 +149,6 @@ public class QuartoPlayerAgent extends QuartoAgent {
                 "," +
                 tmpState.bestTransition.placedPieceLocation[1];
 
-        System.out.println("About to return move: " + moveString);
         return moveString;
     }
 
