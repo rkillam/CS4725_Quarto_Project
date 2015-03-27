@@ -18,7 +18,7 @@ p1Draws=0;
 p2Draws=0;
 
 myAgent="QuartoPlayerAgent"
-opponentAgent="QuartoRandomAgent"
+opponentAgent="QuartoSemiRandomAgent"
 
 echo "Starting games"
 for i in {0..9}; do

@@ -61,6 +61,7 @@ public class QuartoGameState {
 
         this.transitions = new HashMap<String, QuartoGameTransition>();
 
+        // TODO: register states
 //        registerState(this.getHash(), this);
     }
 
@@ -96,7 +97,8 @@ public class QuartoGameState {
             numOfDesc *= i;
         }
 
-        return (permsOfMoves == 0) ? 1 : numOfDesc / permsOfMoves;
+        // TODO: Need to ensure that we only visit unique nodes before we can divide by permsOfMoves again
+        return (permsOfMoves == 0) ? 1 : numOfDesc; // / permsOfMoves;
     }
 
     /**
@@ -108,6 +110,7 @@ public class QuartoGameState {
         }
         else {
             value = 0;
+            // FIXME/OPTIMIZE: this is just hacky and awful
             for(int[] square : this.freeSquares) {
                 QuartoBoard tmpBoard = new QuartoBoard(this.board);
                 tmpBoard.insertPieceOnBoard(square[0], square[1], limboPiece.getPieceID());
@@ -123,6 +126,7 @@ public class QuartoGameState {
     /**
      * @return       boolean
      */
+    // TODO: Get rid of this method
     public boolean hasQuarto(QuartoBoard tmpBoard)
     {
         //loop through rows

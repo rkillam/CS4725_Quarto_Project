@@ -11,7 +11,8 @@ public class QuartoPlayerAgent extends QuartoAgent {
 
     //Example AI
     public QuartoPlayerAgent(GameClient gameClient, String stateFileName) {
-        // because super calls one of the super class constructors(you can overload constructors), you need to pass the parameters required.
+        // because super calls one of the super class constructors(you can overload constructors),
+        // you need to pass the parameters required.
         super(gameClient, stateFileName);
     }
 
@@ -44,7 +45,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
     private int calcSearchableDepth(QuartoGameState state) {
         int depthLimit = 0;
         int totalNodes = state.calcNodesInGeneration(depthLimit);
-        int maxSearchableNodes = NODES_PER_SECOND * (10000 / 1000); // FIXME: I hard coded the this.timeLimitForResponse
+        int maxSearchableNodes = NODES_PER_SECOND * (this.timeLimitForResponse / 1000);
         while(totalNodes <= maxSearchableNodes) {
             depthLimit += 1;
             totalNodes += state.calcNodesInGeneration(depthLimit);
@@ -52,7 +53,6 @@ public class QuartoPlayerAgent extends QuartoAgent {
 
         if(depthLimit > this.maxDepth) {
             this.maxDepth = depthLimit - 1;
-            //System.out.println("New maxDepth: " + this.maxDepth);
         }
 
         return depthLimit - 1 > 0 ? depthLimit - 1 : 0;
@@ -73,6 +73,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
             for(QuartoGameTransition transition : gen) {
                 QuartoGameState state = transition.toState;
 
+                // TODO: don't explore this state if it's already been explored from the current root
                 state.resetMinimax();
                 searchGameTree(state, transition.nextPiece, levelsLeft - 1, rootDepth);
 
@@ -95,6 +96,8 @@ public class QuartoPlayerAgent extends QuartoAgent {
                         }
                     }
                     else if(state.value == curState.value) {
+                        // Take equivalent nodes with a 50/50 probability to
+                        // randomize the selections
                         if(rand.nextInt(2) == 0) {
                             curState.bestTransition = transition;
                         }
@@ -119,6 +122,8 @@ public class QuartoPlayerAgent extends QuartoAgent {
                         }
                     }
                     else if(state.value == curState.value) {
+                        // Take equivalent nodes with a 50/50 probability to
+                        // randomize the selections
                         if(rand.nextInt(2) == 0) {
                             curState.bestTransition = transition;
                         }
@@ -135,9 +140,13 @@ public class QuartoPlayerAgent extends QuartoAgent {
     @Override
     protected String moveSelectionAlgorithm(int pieceID) {
         /*
-         * NOTE: the new game state is set as a minNode because then we pass this state to the
-         * generator to start trying to place the new piece we flip to a maxNode. This isn't
-         * intuitive to me but appears to result in a winning AI.
+         * NOTE: The new game state is defined as a mini state because states
+         *       are defined as being the result of a player's decisions
+         *       i.e. it's a max node if max made the decisions that resulted
+         *       in this new state.
+         *
+         *       Since mini just chose a square and piece the current state
+         *       belongs to her.
          */
         QuartoGameState tmpState = new QuartoGameState(this.quartoBoard, Integer.MAX_VALUE, Integer.MIN_VALUE, false);
         QuartoPiece limboPiece = tmpState.board.getPiece(pieceID);
@@ -145,11 +154,9 @@ public class QuartoPlayerAgent extends QuartoAgent {
         this.searchGameTree(tmpState, limboPiece, this.calcSearchableDepth(tmpState), this.currentDepth);
         this.pieceToGiveMini = tmpState.bestTransition.nextPiece;
 
-        String moveString = tmpState.bestTransition.placedPieceLocation[0] +
+        return tmpState.bestTransition.placedPieceLocation[0] +
                 "," +
                 tmpState.bestTransition.placedPieceLocation[1];
-
-        return moveString;
     }
 
     /**
@@ -158,9 +165,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
     @Override
     protected String pieceSelectionAlgorithm() {
         if(this.pieceToGiveMini != null){
-            String pieceString = String.format("%5s", this.pieceToGiveMini.binaryStringRepresentation());
-            System.out.println("about to send piece: " + pieceString);
-            return pieceString;
+            return String.format("%5s", this.pieceToGiveMini.binaryStringRepresentation());
         }
         else {
             return String.format("%5s", Integer.toBinaryString(

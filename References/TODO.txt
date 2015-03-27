@@ -1,0 +1,17 @@
+alpha/beta pruning:
+    suplimentary break when a "best" state has been found (-27 for mini, 27 for max)
+
+caching states / not re-visiting states
+
+cleanup evaluate (the second hasQuarto method needs to go)
+
+bench-marking
+
+threading:
+    initial framework
+    search thread
+    cleanup thread
+
+Report
+
+Normalization/symmetry exploitation *** Probably not going to happen ***
