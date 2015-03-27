@@ -130,6 +130,7 @@ public class QuartoServer {
 		int[] move = new int[2];
 		this.gameServer.writeToPlayer(playerOneID, SELECT_MOVE_HEADER + quartoBoard.getPiece(pieceID).binaryStringRepresentation() + " (please select move)");
 		String response = this.gameServer.listenToPlayer(playerOneID, TIME_LIMIT_FOR_RESPONSE);
+        System.out.println("Server: got response: " + response);
 
 		try {
 			if(response == null) {
@@ -140,6 +141,7 @@ public class QuartoServer {
 			move[1] = Integer.parseInt(rowColumn[1]);
 
 			if(!this.isValidMove(move[0], move[1])) {
+                System.out.println("INVALID MOVE ");
 				throw new IllegalArgumentException("INVALID");
 			}
 			this.gameServer.writeToPlayer(playerOneID, ACKNOWLEDGMENT_MOVE_HEADER + move[0] + "," + move[1]);
@@ -162,9 +164,23 @@ public class QuartoServer {
 		return true;
 	}
 
-	private boolean isValidMove(int row, int column) {
+	private boolean isValidMove(int row, int col) {
 		//error checking
-		if(row < 0 || row >= this.quartoBoard.getNumberOfRows() || column < 0 || column >= this.quartoBoard.getNumberOfColumns() || this.quartoBoard.isSpaceTaken(row, column)) {
+		if(row < 0 || row >= this.quartoBoard.getNumberOfRows() ||
+                col < 0 || col >= this.quartoBoard.getNumberOfColumns() ||
+                this.quartoBoard.isSpaceTaken(row, col)) {
+
+            System.out.printf("row: %d < 0 = %b\n", row, row < 0);
+            System.out.printf("row: %d > %d = %b\n", row, this.quartoBoard.getNumberOfRows(), row > this.quartoBoard.getNumberOfRows());
+
+            System.out.printf("col: %d < 0 = %b\n", col, col < 0);
+            System.out.printf("col: %d > %d = %b\n", col, this.quartoBoard.getNumberOfColumns(), col > this.quartoBoard.getNumberOfColumns());
+
+            if(this.quartoBoard.isSpaceTaken(row, col)) {
+                System.out.println("Space was taken");
+                this.quartoBoard.printBoardState();
+                System.out.println("\n");
+            }
 			return false;
 		}
 

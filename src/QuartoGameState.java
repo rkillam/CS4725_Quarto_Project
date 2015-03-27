@@ -4,7 +4,8 @@ import java.util.HashMap;
 
 public class QuartoGameState {
 
-    public static HashMap<String, QuartoGameState> registeredStates = new HashMap<String, QuartoGameState>();
+    private static HashMap<String, QuartoGameState> registeredStates = new HashMap<String, QuartoGameState>();
+    private static boolean registeredStatesBusy = false;
 
     public QuartoBoard board;
     public ArrayList<int[]> freeSquares;
@@ -16,7 +17,7 @@ public class QuartoGameState {
     public int beta;
     public boolean isMaxState;
     public QuartoGameTransition bestTransition;
-    public int lastLevelExaminedFrom = 0;
+    public int lastLevelExaminedFrom;
 
     //
     // Methods
@@ -32,6 +33,8 @@ public class QuartoGameState {
     public QuartoGameState(QuartoBoard board, int alpha, int beta, boolean isMaxState) {
 
         this.board = board;
+
+        this.lastLevelExaminedFrom = 0;
 
         this.freeSquares = new ArrayList<int[]>();
         for (int i = 0; i < this.board.board.length; i++) {
@@ -58,9 +61,10 @@ public class QuartoGameState {
 
         this.transitions = new HashMap<String, QuartoGameTransition>();
 
-        QuartoGameState.registeredStates.put(this.getHash(), this);
+        // TODO: register states
+//        registerState(this.getHash(), this);
     }
-        
+
     /**
      * Returns the number of UNIQUE descendants from this state after the
      * given number of generations
@@ -93,21 +97,58 @@ public class QuartoGameState {
             numOfDesc *= i;
         }
 
-        return (permsOfMoves == 0) ? 1 : numOfDesc / permsOfMoves;
+        // TODO: Need to ensure that we only visit unique nodes before we can divide by permsOfMoves again
+        return (permsOfMoves == 0) ? 1 : numOfDesc; // / permsOfMoves;
     }
 
     /**
-     * @param level The root curState the lead to this nodes evaluation
+     * @param limboPiece Piece to be placed at current state
      */
-    public void evaluate(int level)
-    {
+    public void evaluate(QuartoPiece limboPiece) {
         if(this.hasQuarto()) {
-            value = isMaxState ? 27 : -27;
-        } else {
+            value = isMaxState ? -27 : 27;
+        }
+        else {
             value = 0;
+            // FIXME/OPTIMIZE: this is just hacky and awful
+            for(int[] square : this.freeSquares) {
+                QuartoBoard tmpBoard = new QuartoBoard(this.board);
+                tmpBoard.insertPieceOnBoard(square[0], square[1], limboPiece.getPieceID());
+
+                if(this.hasQuarto(tmpBoard)) {
+                    value = this.isMaxState ? 27 : -27;
+                    break;
+                }
+            }
+        }
+    }
+
+    /**
+     * @return       boolean
+     */
+    // TODO: Get rid of this method
+    public boolean hasQuarto(QuartoBoard tmpBoard)
+    {
+        //loop through rows
+        for(int i = 0; i < tmpBoard.getNumberOfRows(); i++) {
+            if (tmpBoard.checkRow(i)) {
+                return true;
+            }
         }
 
-        this.lastLevelExaminedFrom = level;
+        //loop through columns
+        for(int i = 0; i < tmpBoard.getNumberOfColumns(); i++) {
+            if (tmpBoard.checkColumn(i)) {
+                return true;
+            }
+        }
+
+        //check Diagonals
+        if (tmpBoard.checkDiagonals()) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -124,7 +165,6 @@ public class QuartoGameState {
 
         //loop through columns
         for(int i = 0; i < this.board.getNumberOfColumns(); i++) {
-            //gameIsWon = this.quartoBoard.checkColumn(i);
             if (this.board.checkColumn(i)) {
                 return true;
             }
@@ -144,14 +184,8 @@ public class QuartoGameState {
     public void resetMinimax() {
         alpha = Integer.MIN_VALUE;
         beta = Integer.MAX_VALUE;
-    }
 
-    /*
-     *  Dump no longer referenced states by clearing
-     *  currently register states for garbage collection
-     */
-    public void clearStates() {
-        QuartoGameState.registeredStates.clear();
+        value = isMaxState ? alpha : beta;
     }
 
     /**
@@ -169,5 +203,36 @@ public class QuartoGameState {
             }
         }
         return hash;
+    }
+
+    /**
+     * registeredStates thread safe accessor methods
+     */
+
+    /*
+     *  Dump no longer referenced states by clearing
+     *  currently register states for garbage collection
+     */
+    public static void clearStates() {
+        while(registeredStatesBusy);
+        registeredStatesBusy = true;
+        registeredStates.clear();
+        registeredStatesBusy = false;
+    }
+
+    public static void registerState(String key, QuartoGameState state) {
+        while(registeredStatesBusy);
+        registeredStatesBusy = true;
+        registeredStates.put(key, state);
+        registeredStatesBusy = false;
+    }
+
+    public static QuartoGameState getRegisteredState(String key) {
+        while(registeredStatesBusy);
+        registeredStatesBusy = true;
+        QuartoGameState state = registeredStates.get(key);
+        registeredStatesBusy = false;
+
+        return state;
     }
 }

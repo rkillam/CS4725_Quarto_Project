@@ -193,6 +193,7 @@ public class QuartoAgent {
 
 		//determine piece
 		String moveMessage = moveSelectionAlgorithm(pieceID);
+        System.out.println("Sending moveMessage: " + moveMessage);
 
 		this.gameClient.writeToServer(moveMessage);
 

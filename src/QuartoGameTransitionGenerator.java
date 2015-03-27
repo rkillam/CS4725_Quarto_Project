@@ -1,15 +1,11 @@
 import java.util.Iterator;
 import java.util.ArrayList;
 
-/**
- * Created by brendend on 15-03-14.
- */
 public class QuartoGameTransitionGenerator implements Iterable<QuartoGameTransition>{
 
     public QuartoGameState fromState;
     public QuartoPiece limboPiece;
     public Iterator<QuartoPiece> pieces;
-
 
     QuartoGameTransitionGenerator(QuartoGameState fromState, QuartoPiece limboPiece) {
         this.fromState = fromState;
@@ -19,7 +15,6 @@ public class QuartoGameTransitionGenerator implements Iterable<QuartoGameTransit
         pieces = tempPieces.iterator();
     }
 
-
     /**
      * @return       Iterator<QuartoGameState>
      */
@@ -28,17 +23,12 @@ public class QuartoGameTransitionGenerator implements Iterable<QuartoGameTransit
     {
         return new Iterator<QuartoGameTransition>() {
             private QuartoGameState curState = fromState;
-            private Iterator<QuartoGameTransition> transitions = curState.transitions.values().iterator();
             private Iterator<int[]> squares = curState.freeSquares.iterator();
             private QuartoPiece nextPiece = null;
             private int[] nextSquare = null;
 
             @Override
             public QuartoGameTransition next() {
-                if(transitions.hasNext()) {
-                    return transitions.next();
-                }
-
                 //reset squares if finished exploring, or beginning exploring
                 if(nextSquare == null || !squares.hasNext()) {
                     squares = curState.freeSquares.iterator();
@@ -51,33 +41,15 @@ public class QuartoGameTransitionGenerator implements Iterable<QuartoGameTransit
 
                 newBoard.insertPieceOnBoard(nextSquare[0], nextSquare[1], limboPiece.getPieceID());
 
-                String hash = "";
-                QuartoPiece p;
-                for(int i=0; i<this.curState.board.board.length;i++) {
-                    for(int j=0; j<this.curState.board.board[0].length;j++) {
-                        p = this.curState.board.getPieceOnPosition(i,j);
-                        hash += limboPiece == null ? "_" : limboPiece.binaryStringRepresentation();
-                    }
-                }
+                QuartoGameState newState = new QuartoGameState(newBoard, curState.alpha, curState.beta, !curState.isMaxState);
 
-                QuartoGameState newState;
-                if(QuartoGameState.registeredStates.get(hash) != null) {
-                    newState = QuartoGameState.registeredStates.get(hash);
-                } else {
-                    newState = new QuartoGameState(newBoard, curState.alpha, curState.beta, !curState.isMaxState);
-                }
-
-                QuartoGameTransition newTransition = new QuartoGameTransition(newState, limboPiece, nextSquare, nextPiece);
-
-                curState.transitions.put(newTransition.getHashCode(), newTransition);
-                return newTransition;
+                return new QuartoGameTransition(newState, limboPiece, nextSquare, nextPiece);
             }
 
             @Override
             public boolean hasNext() {
-                return this.transitions.hasNext() ||
-                        pieces.hasNext()      ||
-                        this.squares.hasNext();
+                return curState.freeSquares.size() > 0 &&
+                        (pieces.hasNext() || this.squares.hasNext());
             }
 
             @Override
