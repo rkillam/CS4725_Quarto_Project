@@ -18,11 +18,11 @@ p1Draws=0;
 p2Draws=0;
 
 myAgent="QuartoPlayerAgent"
-opponentAgent="QuartoSemiRandomAgent"
+opponentAgent="QuartoPlayerAgentV2"
 
 echo "Starting games"
-for i in {0..9}; do
-    echo "Player game #$i"
+for i in {1..10}; do
+    echo "Playing game #$i"
 
     if (($RANDOM % 2 == 0)); then
         player1=$myAgent

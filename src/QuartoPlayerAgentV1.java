@@ -1,7 +1,7 @@
 import java.lang.Override;
 import java.util.Random;
 
-public class OldQuartoPlayerAgent extends QuartoAgent {
+public class QuartoPlayerAgentV1 extends QuartoAgent {
     private QuartoGameState curState;
     private int maxDepth = -1;
     private int[] minisChosenSquare = {-1,-1};
@@ -13,7 +13,7 @@ public class OldQuartoPlayerAgent extends QuartoAgent {
     private static Random rand = new Random();
 
     //Example AI
-    public OldQuartoPlayerAgent(GameClient gameClient, String stateFileName) {
+    public QuartoPlayerAgentV1(GameClient gameClient, String stateFileName) {
         // because super calls one of the super class constructors(you can overload constructors), you need to pass the parameters required.
         super(gameClient, stateFileName);
     }
