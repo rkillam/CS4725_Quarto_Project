@@ -1,7 +1,7 @@
 import java.lang.Override;
 import java.util.Random;
 
-public class QuartoPlayerAgent extends QuartoAgent {
+public class QuartoPlayerAgentV2 extends QuartoAgent {
     private int maxDepth = -1;
     public final int NODES_PER_SECOND = 1500; //TO-DO Benchmark NODES_PER_SECOND
     public int currentDepth = 1;
@@ -10,7 +10,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
     private static Random rand = new Random();
 
     //Example AI
-    public QuartoPlayerAgent(GameClient gameClient, String stateFileName) {
+    public QuartoPlayerAgentV2(GameClient gameClient, String stateFileName) {
         // because super calls one of the super class constructors(you can overload constructors),
         // you need to pass the parameters required.
         super(gameClient, stateFileName);
@@ -45,7 +45,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
     private int calcSearchableDepth(QuartoGameState state) {
         int depthLimit = 0;
         int totalNodes = state.calcNodesInGeneration(depthLimit);
-        int maxSearchableNodes = NODES_PER_SECOND * ((this.timeLimitForResponse - COMMUNICATION_DELAY)/ 1000);
+        int maxSearchableNodes = NODES_PER_SECOND * (this.timeLimitForResponse / 1000);
         while(totalNodes <= maxSearchableNodes) {
             depthLimit += 1;
             totalNodes += state.calcNodesInGeneration(depthLimit);
@@ -64,7 +64,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
      * @param limboPiece Piece to be placed
      * @param rootDepth The current root nodes depth in relation to the original tree. Used to ensure unique evaluations.
      */
-    private int searchGameTree(QuartoGameState curState, QuartoPiece limboPiece, int levelsLeft, int rootDepth) {
+    private void searchGameTree(QuartoGameState curState, QuartoPiece limboPiece, int levelsLeft, int rootDepth) {
         if(levelsLeft == 0 || curState.hasQuarto() || curState.board.checkIfBoardIsFull()) {
             curState.evaluate(limboPiece);
         }
@@ -75,12 +75,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
 
                 // TODO: don't explore this state if it's already been explored from the current root
                 state.resetMinimax();
-                int retval = searchGameTree(state, transition.nextPiece, levelsLeft - 1, rootDepth);
-
-                if(retval != 0) {
-                    System.out.println("isMaxNode: " + curState.isMaxState);
-                    System.out.println("Got a retval of: " + retval);
-                }
+                searchGameTree(state, transition.nextPiece, levelsLeft - 1, rootDepth);
 
                 if(curState.isMaxState) {
                     if(state.value > curState.value) {
@@ -96,17 +91,8 @@ public class QuartoPlayerAgent extends QuartoAgent {
                             curState.value = 0;
                         }
 
-                        if(curState.value > curState.alpha) {
-                            curState.alpha = curState.value;
-                        }
-
-                        /* Implements alpha beta pruning, also if this state's value is
-                         * 26 then that means we can do no better, as such there is no
-                         * point in exploring the rest of this node's children
-                         */
-                        if(curState.beta <= curState.alpha || curState.value >= 26) {
-                            System.out.printf("alpha: %d\nbeta:  %d\nvalue: %d\n\n", curState.alpha, curState.beta, curState.value);
-                            return 1;
+                        if(state.value > state.alpha) {
+                            state.alpha = state.value;
                         }
                     }
                     else if(state.value == curState.value) {
@@ -131,17 +117,8 @@ public class QuartoPlayerAgent extends QuartoAgent {
                             curState.value = 0;
                         }
 
-                        if(curState.value < curState.beta) {
-                            curState.beta = curState.value;
-                        }
-
-                        /* Implements alpha beta pruning, also if this state's value is
-                         * 26 then that means we can do no better, as such there is no
-                         * point in exploring the rest of this node's children
-                         */
-                        if(curState.beta <= curState.alpha || curState.value <= -26) {
-                            System.out.printf("alpha: %d\nbeta:  %d\nvalue: %d\n\n", curState.alpha, curState.beta, curState.value);
-                            return -1;
+                        if(state.value < state.beta) {
+                            state.beta = state.value;
                         }
                     }
                     else if(state.value == curState.value) {
@@ -154,7 +131,6 @@ public class QuartoPlayerAgent extends QuartoAgent {
                 }
             }
         }
-        return 0;
     }
 
     /**
@@ -172,7 +148,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
          *       Since mini just chose a square and piece the current state
          *       belongs to her.
          */
-        QuartoGameState tmpState = new QuartoGameState(this.quartoBoard, Integer.MIN_VALUE, Integer.MAX_VALUE, false);
+        QuartoGameState tmpState = new QuartoGameState(this.quartoBoard, Integer.MAX_VALUE, Integer.MIN_VALUE, false);
         QuartoPiece limboPiece = tmpState.board.getPiece(pieceID);
 
         this.searchGameTree(tmpState, limboPiece, this.calcSearchableDepth(tmpState), this.currentDepth);
