@@ -1,19 +1,66 @@
 import java.lang.Override;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
+
+class SearchSpaceThread implements Runnable {
+    public QuartoPlayerAgent agent;
+    public boolean rootLocked;
+    public QuartoPiece limboPiece;
+
+    public SearchSpaceThread(QuartoPlayerAgent agent) {
+        this.agent = agent;
+        this.rootLocked = false;
+        this.limboPiece = null;
+    }
+
+    @Override
+    public void run() {
+        agent.searchGameTree(
+                agent.rootState,
+                this.limboPiece,
+                agent.calcSearchableDepth(agent.rootState),
+                agent.currentDepth++
+        );
+    }
+}
+
+class CleanupThread implements Runnable {
+    private QuartoPiece placedPiece;
+    private int[] placedPieceLocation;
+    private int numberOfFreePieces;
+
+    public CleanupThread(QuartoPlayerAgent agent) {
+        System.out.println(agent.rootState.bestTransition);
+        this.placedPiece = agent.rootState.bestTransition.placedPiece;
+        this.placedPieceLocation = agent.rootState.bestTransition.placedPieceLocation;
+        this.numberOfFreePieces = agent.rootState.freePieces.size();
+    }
+
+    @Override
+    public void run() {
+        QuartoGameState.pruneStates(this.placedPiece, this.placedPieceLocation, this.numberOfFreePieces);
+    }
+}
 
 public class QuartoPlayerAgent extends QuartoAgent {
     private int maxDepth = -1;
     public final int NODES_PER_SECOND = 1500; //TO-DO Benchmark NODES_PER_SECOND
     public int currentDepth = 1;
-    public QuartoPiece pieceToGiveMini = null;
+    public QuartoGameState rootState = null;
 
     private static Random rand = new Random();
+
+    public SearchSpaceThread searchSpaceThread;
 
     //Example AI
     public QuartoPlayerAgent(GameClient gameClient, String stateFileName) {
         // because super calls one of the super class constructors(you can overload constructors),
         // you need to pass the parameters required.
         super(gameClient, stateFileName);
+
+        this.searchSpaceThread = new SearchSpaceThread(this);
     }
 
     //MAIN METHOD
@@ -42,7 +89,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
         gameClient.closeConnection();
     }
 
-    private int calcSearchableDepth(QuartoGameState state) {
+    public int calcSearchableDepth(QuartoGameState state) {
         int depthLimit = 0;
         int totalNodes = state.calcNodesInGeneration(depthLimit);
         int maxSearchableNodes = NODES_PER_SECOND * ((this.timeLimitForResponse - COMMUNICATION_DELAY)/ 1000);
@@ -64,7 +111,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
      * @param limboPiece Piece to be placed
      * @param rootDepth The current root nodes depth in relation to the original tree. Used to ensure unique evaluations.
      */
-    private void searchGameTree(QuartoGameState curState, QuartoPiece limboPiece, int levelsLeft, int rootDepth) {
+    public void searchGameTree(QuartoGameState curState, QuartoPiece limboPiece, int levelsLeft, int rootDepth) {
         if(levelsLeft == 0 || curState.hasQuarto() || curState.board.checkIfBoardIsFull()) {
             curState.evaluate(limboPiece);
         }
@@ -151,8 +198,6 @@ public class QuartoPlayerAgent extends QuartoAgent {
      */
     @Override
     protected String moveSelectionAlgorithm(int pieceID) {
-        QuartoGameState.clearStates();
-
         /*
          * NOTE: The new game state is defined as a mini state because states
          *       are defined as being the result of a player's decisions
@@ -162,21 +207,19 @@ public class QuartoPlayerAgent extends QuartoAgent {
          *       Since mini just chose a square and piece the current state
          *       belongs to her.
          */
-        QuartoGameState tmpState = QuartoGameState.getRegisteredState(
+        this.rootState = QuartoGameState.getRegisteredState(
                 this.quartoBoard,
                 Integer.MIN_VALUE,
                 Integer.MAX_VALUE,
                 false
         );
 
-        QuartoPiece limboPiece = tmpState.board.getPiece(pieceID);
+        this.searchSpaceThread.limboPiece = this.rootState.board.getPiece(pieceID);
+        this.searchSpaceThread.run();
 
-        this.searchGameTree(tmpState, limboPiece, this.calcSearchableDepth(tmpState), this.currentDepth);
-        this.pieceToGiveMini = tmpState.bestTransition.nextPiece;
-
-        return tmpState.bestTransition.placedPieceLocation[0] +
+        return this.rootState.bestTransition.placedPieceLocation[0] +
                 "," +
-                tmpState.bestTransition.placedPieceLocation[1];
+                this.rootState.bestTransition.placedPieceLocation[1];
     }
 
     /**
@@ -184,8 +227,17 @@ public class QuartoPlayerAgent extends QuartoAgent {
      */
     @Override
     protected String pieceSelectionAlgorithm() {
-        if(this.pieceToGiveMini != null){
-            return String.format("%5s", this.pieceToGiveMini.binaryStringRepresentation());
+        if(this.rootState != null) {
+            String retPiece = this.rootState.bestTransition.nextPiece.binaryStringRepresentation();
+
+            new CleanupThread(this).run();
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            return String.format("%5s", retPiece);
         }
         else {
             return String.format("%5s", Integer.toBinaryString(

@@ -1,5 +1,4 @@
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 
 
 public class QuartoGameState {
@@ -75,6 +74,50 @@ public class QuartoGameState {
         registeredStatesBusy = true;
         registeredStates.clear();
         registeredStatesBusy = false;
+    }
+
+    public static void pruneStates(QuartoPiece placedPiece, int[] placedPieceLocation, int numberOfFreePieces) {
+        while(registeredStatesBusy){}
+        registeredStatesBusy = true;
+        Iterator<Map.Entry<String, QuartoGameState>> stateMapIterator = registeredStates.entrySet().iterator();
+
+        while(stateMapIterator.hasNext()) {
+            Map.Entry<String, QuartoGameState> stateMap = stateMapIterator.next();
+            String key = stateMap.getKey();
+            QuartoGameState state = stateMap.getValue();
+
+            // Are there enough pieces on the board for us to be able to reach this state?
+            boolean enoughPiecesPlayed = state.freePieces.size() <= numberOfFreePieces;
+
+            QuartoPiece pieceInSquare = state.board.getPieceOnPosition(
+                    placedPieceLocation[0],
+                    placedPieceLocation[1]
+            );
+
+            // Is the piece we placed in the right square
+            boolean isPieceInSquare = pieceInSquare != null && pieceInSquare.getPieceID() == placedPiece.getPieceID();
+
+            /**
+             * A state is unreachable from our current root if:
+             *      It has fewer pieces on the board == has more free pieces
+             *      It does not have the placedPiece in the placedPieceLocation
+             */
+            if(!enoughPiecesPlayed || !isPieceInSquare) {
+                stateMapIterator.remove();
+            }
+        }
+
+
+        registeredStatesBusy = false;
+    }
+
+    public static Set<Map.Entry<String, QuartoGameState>> getIterator() {
+        while(registeredStatesBusy){}
+        registeredStatesBusy = true;
+        Set<Map.Entry<String, QuartoGameState>> retIter = registeredStates.entrySet();
+        registeredStatesBusy = false;
+
+        return retIter;
     }
 
     public static void registerState(String key, QuartoGameState state) {
