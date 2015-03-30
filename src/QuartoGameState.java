@@ -30,7 +30,7 @@ public class QuartoGameState {
      * @param beta
      * @param isMaxState
      */
-    public QuartoGameState(QuartoBoard board, int alpha, int beta, boolean isMaxState) {
+    private QuartoGameState(QuartoBoard board, int alpha, int beta, boolean isMaxState) {
 
         this.board = board;
 
@@ -60,9 +60,60 @@ public class QuartoGameState {
         this.value = this.isMaxState ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 
         this.transitions = new HashMap<String, QuartoGameTransition>();
+    }
 
-        // TODO: register states
-//        registerState(this.getHash(), this);
+    /**
+     * registeredStates thread safe accessor methods
+     */
+
+    /*
+     *  Dump no longer referenced states by clearing
+     *  currently register states for garbage collection
+     */
+    public static void clearStates() {
+        while(registeredStatesBusy);
+        registeredStatesBusy = true;
+        registeredStates.clear();
+        registeredStatesBusy = false;
+    }
+
+    public static void registerState(String key, QuartoGameState state) {
+        while(registeredStatesBusy);
+        registeredStatesBusy = true;
+        registeredStates.put(key, state);
+        registeredStatesBusy = false;
+    }
+
+    public static QuartoGameState getRegisteredState(String key) {
+        return getRegisteredStateHelper(key);
+    }
+
+    public static QuartoGameState getRegisteredState(QuartoBoard board, int alpha, int beta, boolean isMaxState) {
+        // Create a state in order to get the appropriate hash code
+        QuartoGameState state = new QuartoGameState(board, alpha, beta, isMaxState);
+        String key = state.getHash();
+
+        // Attempt to get an already existing singleton of this state
+        QuartoGameState tmpState = getRegisteredStateHelper(key);
+        if(tmpState != null) {
+            // If one does exist, use it
+            state = tmpState;
+        }
+        else {
+            // If one doesn't exist, register the one we created
+            registerState(key, state);
+        }
+
+        return state;
+    }
+
+    private static QuartoGameState getRegisteredStateHelper(String key) {
+        while(registeredStatesBusy);
+        registeredStatesBusy = true;
+        QuartoGameState state = registeredStates.get(key);
+        registeredStatesBusy = false;
+
+        return state;
     }
 
     /**
@@ -97,8 +148,7 @@ public class QuartoGameState {
             numOfDesc *= i;
         }
 
-        // TODO: Need to ensure that we only visit unique nodes before we can divide by permsOfMoves again
-        return (permsOfMoves == 0) ? 1 : numOfDesc; // / permsOfMoves;
+        return (permsOfMoves == 0) ? 1 : numOfDesc / permsOfMoves;
     }
 
     /**
@@ -203,36 +253,5 @@ public class QuartoGameState {
             }
         }
         return hash;
-    }
-
-    /**
-     * registeredStates thread safe accessor methods
-     */
-
-    /*
-     *  Dump no longer referenced states by clearing
-     *  currently register states for garbage collection
-     */
-    public static void clearStates() {
-        while(registeredStatesBusy);
-        registeredStatesBusy = true;
-        registeredStates.clear();
-        registeredStatesBusy = false;
-    }
-
-    public static void registerState(String key, QuartoGameState state) {
-        while(registeredStatesBusy);
-        registeredStatesBusy = true;
-        registeredStates.put(key, state);
-        registeredStatesBusy = false;
-    }
-
-    public static QuartoGameState getRegisteredState(String key) {
-        while(registeredStatesBusy);
-        registeredStatesBusy = true;
-        QuartoGameState state = registeredStates.get(key);
-        registeredStatesBusy = false;
-
-        return state;
     }
 }
