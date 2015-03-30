@@ -64,97 +64,85 @@ public class QuartoPlayerAgent extends QuartoAgent {
      * @param limboPiece Piece to be placed
      * @param rootDepth The current root nodes depth in relation to the original tree. Used to ensure unique evaluations.
      */
-    private int searchGameTree(QuartoGameState curState, QuartoPiece limboPiece, int levelsLeft, int rootDepth) {
+    private void searchGameTree(QuartoGameState curState, QuartoPiece limboPiece, int levelsLeft, int rootDepth) {
         if(levelsLeft == 0 || curState.hasQuarto() || curState.board.checkIfBoardIsFull()) {
             curState.evaluate(limboPiece);
         }
         else {
-            QuartoGameTransitionGenerator gen = new QuartoGameTransitionGenerator(curState, limboPiece);
+            QuartoGameTransitionGenerator gen = new QuartoGameTransitionGenerator(curState, limboPiece, rootDepth);
             for(QuartoGameTransition transition : gen) {
                 QuartoGameState state = transition.toState;
 
-                // TODO: don't explore this state if it's already been explored from the current root
-                state.resetMinimax();
-                int retval = searchGameTree(state, transition.nextPiece, levelsLeft - 1, rootDepth);
+                // We need this check because the transition generator might return null if
+                // the last state it tries to generate has already been visited
+                if(state != null) {
+                    state.resetMinimax();
+                    searchGameTree(state, transition.nextPiece, levelsLeft - 1, rootDepth);
 
-                if(retval != 0) {
-                    System.out.println("isMaxNode: " + curState.isMaxState);
-                    System.out.println("Got a retval of: " + retval);
-                }
-
-                if(curState.isMaxState) {
-                    if(state.value > curState.value) {
-                        curState.bestTransition = transition;
-
-                        if(state.value > 0) {
-                            curState.value = state.value - 1;
-                        }
-                        else if(state.value < 0) {
-                            curState.value = state.value + 1;
-                        }
-                        else {
-                            curState.value = 0;
-                        }
-
-                        if(curState.value > curState.alpha) {
-                            curState.alpha = curState.value;
-                        }
-
-                        /* Implements alpha beta pruning, also if this state's value is
-                         * 26 then that means we can do no better, as such there is no
-                         * point in exploring the rest of this node's children
-                         */
-                        if(curState.beta <= curState.alpha || curState.value >= 26) {
-                            System.out.printf("alpha: %d\nbeta:  %d\nvalue: %d\n\n", curState.alpha, curState.beta, curState.value);
-                            return 1;
-                        }
-                    }
-                    else if(state.value == curState.value) {
-                        // Take equivalent nodes with a 50/50 probability to
-                        // randomize the selections
-                        if(rand.nextInt(2) == 0) {
+                    if (curState.isMaxState) {
+                        if (state.value > curState.value) {
                             curState.bestTransition = transition;
-                        }
-                    }
-                }
-                else {
-                    if(state.value < curState.value) {
-                        curState.bestTransition = transition;
 
-                        if(state.value > 0) {
-                            curState.value = state.value - 1;
-                        }
-                        else if(state.value < 0) {
-                            curState.value = state.value + 1;
-                        }
-                        else {
-                            curState.value = 0;
-                        }
+                            if (state.value > 0) {
+                                curState.value = state.value - 1;
+                            } else if (state.value < 0) {
+                                curState.value = state.value + 1;
+                            } else {
+                                curState.value = 0;
+                            }
 
-                        if(curState.value < curState.beta) {
-                            curState.beta = curState.value;
-                        }
+                            if (curState.value > curState.alpha) {
+                                curState.alpha = curState.value;
+                            }
 
-                        /* Implements alpha beta pruning, also if this state's value is
-                         * 26 then that means we can do no better, as such there is no
-                         * point in exploring the rest of this node's children
-                         */
-                        if(curState.beta <= curState.alpha || curState.value <= -26) {
-                            System.out.printf("alpha: %d\nbeta:  %d\nvalue: %d\n\n", curState.alpha, curState.beta, curState.value);
-                            return -1;
+                            /* Implements alpha beta pruning, also if this state's value is
+                             * 26 then that means we can do no better, as such there is no
+                             * point in exploring the rest of this node's children
+                             */
+                            if (curState.beta <= curState.alpha || curState.value >= 26) {
+                                break;
+                            }
+                        } else if (state.value == curState.value) {
+                            // Take equivalent nodes with a 50/50 probability to
+                            // randomize the selections
+                            if (rand.nextInt(2) == 0) {
+                                curState.bestTransition = transition;
+                            }
                         }
-                    }
-                    else if(state.value == curState.value) {
-                        // Take equivalent nodes with a 50/50 probability to
-                        // randomize the selections
-                        if(rand.nextInt(2) == 0) {
+                    } else {
+                        if (state.value < curState.value) {
                             curState.bestTransition = transition;
+
+                            if (state.value > 0) {
+                                curState.value = state.value - 1;
+                            } else if (state.value < 0) {
+                                curState.value = state.value + 1;
+                            } else {
+                                curState.value = 0;
+                            }
+
+                            if (curState.value < curState.beta) {
+                                curState.beta = curState.value;
+                            }
+
+                            /* Implements alpha beta pruning, also if this state's value is
+                             * 26 then that means we can do no better, as such there is no
+                             * point in exploring the rest of this node's children
+                             */
+                            if (curState.beta <= curState.alpha || curState.value <= -26) {
+                                break;
+                            }
+                        } else if (state.value == curState.value) {
+                            // Take equivalent nodes with a 50/50 probability to
+                            // randomize the selections
+                            if (rand.nextInt(2) == 0) {
+                                curState.bestTransition = transition;
+                            }
                         }
                     }
                 }
             }
         }
-        return 0;
     }
 
     /**
@@ -163,6 +151,8 @@ public class QuartoPlayerAgent extends QuartoAgent {
      */
     @Override
     protected String moveSelectionAlgorithm(int pieceID) {
+        QuartoGameState.clearStates();
+
         /*
          * NOTE: The new game state is defined as a mini state because states
          *       are defined as being the result of a player's decisions
@@ -172,7 +162,13 @@ public class QuartoPlayerAgent extends QuartoAgent {
          *       Since mini just chose a square and piece the current state
          *       belongs to her.
          */
-        QuartoGameState tmpState = new QuartoGameState(this.quartoBoard, Integer.MIN_VALUE, Integer.MAX_VALUE, false);
+        QuartoGameState tmpState = QuartoGameState.getRegisteredState(
+                this.quartoBoard,
+                Integer.MIN_VALUE,
+                Integer.MAX_VALUE,
+                false
+        );
+
         QuartoPiece limboPiece = tmpState.board.getPiece(pieceID);
 
         this.searchGameTree(tmpState, limboPiece, this.calcSearchableDepth(tmpState), this.currentDepth);
