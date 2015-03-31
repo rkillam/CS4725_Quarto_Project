@@ -3,7 +3,7 @@ import java.util.Random;
 
 public class QuartoPlayerAgent extends QuartoAgent {
     private int maxDepth = -1;
-    public final int NODES_PER_SECOND = 1500; //TO-DO Benchmark NODES_PER_SECOND
+    public final int NODES_PER_SECOND = 1000; //TO-DO Benchmark NODES_PER_SECOND
     public int currentDepth = 1;
     public QuartoPiece pieceToGiveMini = null;
 
@@ -80,6 +80,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
                     searchGameTree(state, transition.nextPiece, levelsLeft - 1, rootDepth);
 
                     if (curState.isMaxState) {
+                        System.out.println(state.value + " > " + curState.value);
                         if (state.value > curState.value) {
                             curState.bestTransition = transition;
 
@@ -110,6 +111,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
                             }
                         }
                     } else {
+                        System.out.println(state.value + " < " + curState.value);
                         if (state.value < curState.value) {
                             curState.bestTransition = transition;
 

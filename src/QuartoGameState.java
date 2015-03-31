@@ -160,45 +160,50 @@ public class QuartoGameState {
         }
         else {
             value = 0;
-            // FIXME/OPTIMIZE: this is just hacky and awful
-            for(int[] square : this.freeSquares) {
-                QuartoBoard tmpBoard = new QuartoBoard(this.board);
-                tmpBoard.insertPieceOnBoard(square[0], square[1], limboPiece.getPieceID());
+            if(this.freeSquares.size() <= 21) {
+                ArrayList<int[]> squaresToTest = getTestSquares();
+                for (int[] square : squaresToTest) {
+                    QuartoBoard tmpBoard = new QuartoBoard(this.board);
+                    tmpBoard.insertPieceOnBoard(square[0], square[1], limboPiece.getPieceID());
 
-                if(this.hasQuarto(tmpBoard)) {
-                    value = this.isMaxState ? 27 : -27;
-                    break;
+                    QuartoGameState state = getRegisteredState(tmpBoard, alpha, beta, !this.isMaxState);
+
+                    if (state.hasQuarto()) {
+                        value = state.isMaxState ? -27 : 27;
+                        break;
+                    }
                 }
             }
         }
     }
 
     /**
-     * @return       boolean
+     * TODO: This is still O(2n) so be nice to avoid calling it often, will look into storing in states.
+     * Two pass evaluation of free squares to see which are the last
+     * piece in a possible combination.
+     *
+     * @return A list of nodes that need to be checked
      */
-    // TODO: Get rid of this method
-    public boolean hasQuarto(QuartoBoard tmpBoard)
-    {
-        //loop through rows
-        for(int i = 0; i < tmpBoard.getNumberOfRows(); i++) {
-            if (tmpBoard.checkRow(i)) {
-                return true;
-            }
+    private ArrayList<int[]> getTestSquares() {
+        ArrayList<int[]> testSquares = new ArrayList<int[]>();
+        int[] winOptions = {0,0,0,0,0,0,0,0,0,0,0,0}; //12 different win directions
+        for(int[] square : this.freeSquares) {
+            winOptions[square[0]]++;
+            winOptions[square[1]+5]++;
+            if(square[0] == square[1])
+                winOptions[10]++;
+            else if(square[0] + square[1] == 4)
+                winOptions[11]++;
         }
-
-        //loop through columns
-        for(int i = 0; i < tmpBoard.getNumberOfColumns(); i++) {
-            if (tmpBoard.checkColumn(i)) {
-                return true;
-            }
+        for(int[] square : this.freeSquares) {
+            if(winOptions[square[0]] == 1 || winOptions[square[1]+5] == 1)
+                testSquares.add(square);
+            else if(square[0] == square[1] && winOptions[10] == 1)
+                testSquares.add(square);
+            else if(square[0] + square[1] == 4 && winOptions[11] == 1)
+                testSquares.add(square);
         }
-
-        //check Diagonals
-        if (tmpBoard.checkDiagonals()) {
-            return true;
-        }
-
-        return false;
+        return testSquares;
     }
 
     /**
