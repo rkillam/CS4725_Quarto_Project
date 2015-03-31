@@ -11,6 +11,7 @@ public class QuartoGameState {
     public ArrayList<int[]> freeSquares;
     public ArrayList<QuartoPiece> freePieces;
     public HashMap<String, QuartoGameTransition> transitions;
+    private ArrayList<int[]> possibleWinSquares;
 
     public int value;
     public int alpha;
@@ -60,6 +61,8 @@ public class QuartoGameState {
         this.value = this.isMaxState ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 
         this.transitions = new HashMap<String, QuartoGameTransition>();
+
+        this.possibleWinSquares = null; //Only bother running getTestSquares() if we need it
     }
 
     /**
@@ -178,32 +181,34 @@ public class QuartoGameState {
     }
 
     /**
-     * TODO: This is still O(2n) so be nice to avoid calling it often, will look into storing in states.
      * Two pass evaluation of free squares to see which are the last
      * piece in a possible combination.
      *
      * @return A list of nodes that need to be checked
      */
     private ArrayList<int[]> getTestSquares() {
-        ArrayList<int[]> testSquares = new ArrayList<int[]>();
-        int[] winOptions = {0,0,0,0,0,0,0,0,0,0,0,0}; //12 different win directions
-        for(int[] square : this.freeSquares) {
-            winOptions[square[0]]++;
-            winOptions[square[1]+5]++;
-            if(square[0] == square[1])
-                winOptions[10]++;
-            else if(square[0] + square[1] == 4)
-                winOptions[11]++;
+        if(possibleWinSquares == null) {
+            possibleWinSquares = new ArrayList<int[]>();
+            int[] winOptions = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; //12 different win directions
+            for (int[] square : this.freeSquares) {
+                winOptions[square[0]]++;
+                winOptions[square[1] + 5]++;
+                if (square[0] == square[1])
+                    winOptions[10]++;
+                else if (square[0] + square[1] == 4)
+                    winOptions[11]++;
+            }
+            for (int[] square : this.freeSquares) {
+                if (winOptions[square[0]] == 1 || winOptions[square[1] + 5] == 1)
+                    possibleWinSquares.add(square);
+                else if (square[0] == square[1] && winOptions[10] == 1)
+                    possibleWinSquares.add(square);
+                else if (square[0] + square[1] == 4 && winOptions[11] == 1)
+                    possibleWinSquares.add(square);
+            }
         }
-        for(int[] square : this.freeSquares) {
-            if(winOptions[square[0]] == 1 || winOptions[square[1]+5] == 1)
-                testSquares.add(square);
-            else if(square[0] == square[1] && winOptions[10] == 1)
-                testSquares.add(square);
-            else if(square[0] + square[1] == 4 && winOptions[11] == 1)
-                testSquares.add(square);
-        }
-        return testSquares;
+
+        return possibleWinSquares;
     }
 
     /**
