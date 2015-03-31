@@ -84,7 +84,6 @@ public class QuartoPlayerAgent extends QuartoAgent {
                     searchGameTree(state, transition.nextPiece, levelsLeft - 1, rootDepth);
 
                     if (curState.isMaxState) {
-                        System.out.println(state.value + " > " + curState.value);
                         if (state.value > curState.value) {
                             curState.bestTransition = transition;
 
@@ -115,7 +114,6 @@ public class QuartoPlayerAgent extends QuartoAgent {
                             }
                         }
                     } else {
-                        System.out.println(state.value + " < " + curState.value);
                         if (state.value < curState.value) {
                             curState.bestTransition = transition;
 
