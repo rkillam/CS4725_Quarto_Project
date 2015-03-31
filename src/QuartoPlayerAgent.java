@@ -39,7 +39,7 @@ public class QuartoPlayerAgent extends QuartoAgent {
         }
 
         gameClient.connectToServer(ip, 4321);
-        QuartoPlayerAgent quartoAgent = new QuartoPlayerAgent(gameClient, "", nodes_per_second);
+        QuartoPlayerAgent quartoAgent = new QuartoPlayerAgent(gameClient, null, nodes_per_second);
 
         quartoAgent.play();
 
