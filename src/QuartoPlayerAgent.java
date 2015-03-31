@@ -3,17 +3,18 @@ import java.util.Random;
 
 public class QuartoPlayerAgent extends QuartoAgent {
     private int maxDepth = -1;
-    public final int NODES_PER_SECOND = 1000; //TO-DO Benchmark NODES_PER_SECOND
+    public int NODES_PER_SECOND = 1000; //TO-DO Benchmark NODES_PER_SECOND
     public int currentDepth = 1;
     public QuartoPiece pieceToGiveMini = null;
 
     private static Random rand = new Random();
 
     //Example AI
-    public QuartoPlayerAgent(GameClient gameClient, String stateFileName) {
+    public QuartoPlayerAgent(GameClient gameClient, String stateFileName, int nodes_per_second) {
         // because super calls one of the super class constructors(you can overload constructors),
         // you need to pass the parameters required.
         super(gameClient, stateFileName);
+        this.NODES_PER_SECOND = nodes_per_second;
     }
 
     //MAIN METHOD
@@ -30,12 +31,15 @@ public class QuartoPlayerAgent extends QuartoAgent {
             System.out.println("No IP Specified");
             System.exit(0);
         }
+
+
+        int nodes_per_second = 1000;
         if (args.length > 1) {
-            stateFileName = args[1];
+            nodes_per_second = Integer.parseInt(args[1]);
         }
 
         gameClient.connectToServer(ip, 4321);
-        QuartoPlayerAgent quartoAgent = new QuartoPlayerAgent(gameClient, stateFileName);
+        QuartoPlayerAgent quartoAgent = new QuartoPlayerAgent(gameClient, "", nodes_per_second);
 
         quartoAgent.play();
 
