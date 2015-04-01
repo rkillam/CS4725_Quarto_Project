@@ -1,5 +1,7 @@
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 
 public class QuartoGameState {
@@ -11,7 +13,7 @@ public class QuartoGameState {
     public ArrayList<int[]> freeSquares;
     public ArrayList<QuartoPiece> freePieces;
     public HashMap<String, QuartoGameTransition> transitions;
-    private ArrayList<int[]> possibleWinSquares;
+    private List<int[]> possibleWinSquares;
 
     public int value;
     public int alpha;
@@ -164,7 +166,7 @@ public class QuartoGameState {
         else {
             value = 0;
             if(this.freeSquares.size() <= 21) {
-                ArrayList<int[]> squaresToTest = getTestSquares();
+                List<int[]> squaresToTest = this.getTestSquares();
                 for (int[] square : squaresToTest) {
                     QuartoBoard tmpBoard = new QuartoBoard(this.board);
                     tmpBoard.insertPieceOnBoard(square[0], square[1], limboPiece.getPieceID());
@@ -181,31 +183,86 @@ public class QuartoGameState {
     }
 
     /**
-     * Two pass evaluation of free squares to see which are the last
-     * piece in a possible combination.
+     * Tries to find a piece that cannot be placed on the
+     * board to win.
+     *
+     * @return Proposed QuartoPiece
+     */
+    public QuartoPiece getSafePiece() {
+        List<int[]> squaresToTest = this.getTestSquares();
+        boolean safe;
+        for(QuartoPiece limboPiece : this.freePieces) {
+            safe = true;
+            for(int[] square : squaresToTest) {
+                QuartoBoard tmpBoard = new QuartoBoard(this.board);
+                tmpBoard.insertPieceOnBoard(square[0], square[1], limboPiece.getPieceID());
+
+                QuartoGameState state = getRegisteredState(tmpBoard, alpha, beta, this.isMaxState);
+
+                if (state.hasQuarto()) {
+                    safe = false;
+                    continue;
+                }
+            }
+
+            if(safe)
+                return limboPiece;
+        }
+
+        //No safe moves
+        return this.board.getPiece(this.board.chooseNextPieceNotPlayed());
+    }
+
+    /**
+     * Evaluation of free squares to see which are the last
+     * square needed in a possible combination.
      *
      * @return A list of nodes that need to be checked
      */
-    private ArrayList<int[]> getTestSquares() {
-        if(possibleWinSquares == null) {
-            possibleWinSquares = new ArrayList<int[]>();
-            int[] winOptions = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; //12 different win directions
+    private List<int[]> getTestSquares() {
+        if(this.possibleWinSquares == null) {
+            this.possibleWinSquares = new ArrayList<int[]>();
+
+            List<List<int[]>> rows = new ArrayList<List<int[]>>();
+            List<List<int[]>> cols = new ArrayList<List<int[]>>();
+            List<List<int[]>> diags = new ArrayList<List<int[]>>();
+
+            for(int i=0;i<5;i++) {
+                rows.add(new ArrayList<int[]>());
+                cols.add(new ArrayList<int[]>());
+                if(i<2)
+                    diags.add(new ArrayList<int[]>());
+            }
+
             for (int[] square : this.freeSquares) {
-                winOptions[square[0]]++;
-                winOptions[square[1] + 5]++;
+                rows.get(square[0]).add(square);
+                cols.get(square[1]).add(square);
                 if (square[0] == square[1])
-                    winOptions[10]++;
+                    diags.get(0).add(square);
                 else if (square[0] + square[1] == 4)
-                    winOptions[11]++;
+                    diags.get(1).add(square);
             }
-            for (int[] square : this.freeSquares) {
-                if (winOptions[square[0]] == 1 || winOptions[square[1] + 5] == 1)
-                    possibleWinSquares.add(square);
-                else if (square[0] == square[1] && winOptions[10] == 1)
-                    possibleWinSquares.add(square);
-                else if (square[0] + square[1] == 4 && winOptions[11] == 1)
-                    possibleWinSquares.add(square);
+
+            for(int i=0;i<5;i++) {
+                if(rows.get(i).size() == 1 &&
+                        !possibleWinSquares.contains(rows.get(i).get(0))) {
+                    possibleWinSquares.addAll(rows.get(i));
+                }
+
+                if(cols.get(i).size() == 1 &&
+                        !possibleWinSquares.contains(cols.get(i).get(0))) {
+                    possibleWinSquares.addAll(cols.get(i));
+                }
+
+                if(i < 2 && diags.get(i).size() == 1 &&
+                        !possibleWinSquares.contains(diags.get(i).get(0))) {
+                    possibleWinSquares.addAll(diags.get(i));
+                }
             }
+
+            rows.clear();
+            cols.clear();
+            diags.clear();
         }
 
         return possibleWinSquares;

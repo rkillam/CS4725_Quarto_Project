@@ -80,7 +80,6 @@ public class QuartoPlayerAgent extends QuartoAgent {
                     searchGameTree(state, transition.nextPiece, levelsLeft - 1, rootDepth);
 
                     if (curState.isMaxState) {
-                        System.out.println(state.value + " > " + curState.value);
                         if (state.value > curState.value) {
                             curState.bestTransition = transition;
 
@@ -111,7 +110,6 @@ public class QuartoPlayerAgent extends QuartoAgent {
                             }
                         }
                     } else {
-                        System.out.println(state.value + " < " + curState.value);
                         if (state.value < curState.value) {
                             curState.bestTransition = transition;
 
@@ -186,12 +184,18 @@ public class QuartoPlayerAgent extends QuartoAgent {
      */
     @Override
     protected String pieceSelectionAlgorithm() {
-        if(this.pieceToGiveMini != null){
-            return String.format("%5s", this.pieceToGiveMini.binaryStringRepresentation());
+        if(this.pieceToGiveMini == null){
+            //Should only occur on first move of a game
+            QuartoGameState tmpState = QuartoGameState.getRegisteredState(
+                    this.quartoBoard,
+                    Integer.MAX_VALUE,
+                    Integer.MIN_VALUE,
+                    true
+            );
+
+            this.pieceToGiveMini = tmpState.getSafePiece();
         }
-        else {
-            return String.format("%5s", Integer.toBinaryString(
-                            this.quartoBoard.chooseNextPieceNotPlayed())).replace(' ', '0');
-        }
+
+        return String.format("%5s", this.pieceToGiveMini.binaryStringRepresentation());
     }
 }
