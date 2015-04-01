@@ -1,4 +1,3 @@
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -165,9 +164,10 @@ public class QuartoGameState {
         }
         else {
             value = 0;
+            //Minor optimization, don't bother checking if we wouldn't have
+            //a board with 5 or more pieces
             if(this.freeSquares.size() <= 21) {
-                List<int[]> squaresToTest = this.getTestSquares();
-                for (int[] square : squaresToTest) {
+                for (int[] square : this.getTestSquares()) {
                     QuartoBoard tmpBoard = new QuartoBoard(this.board);
                     tmpBoard.insertPieceOnBoard(square[0], square[1], limboPiece.getPieceID());
 
@@ -189,11 +189,10 @@ public class QuartoGameState {
      * @return Proposed QuartoPiece
      */
     public QuartoPiece getSafePiece() {
-        List<int[]> squaresToTest = this.getTestSquares();
         boolean safe;
         for(QuartoPiece limboPiece : this.freePieces) {
             safe = true;
-            for(int[] square : squaresToTest) {
+            for(int[] square : this.getTestSquares()) {
                 QuartoBoard tmpBoard = new QuartoBoard(this.board);
                 tmpBoard.insertPieceOnBoard(square[0], square[1], limboPiece.getPieceID());
 
@@ -201,12 +200,12 @@ public class QuartoGameState {
 
                 if (state.hasQuarto()) {
                     safe = false;
-                    continue;
                 }
             }
 
-            if(safe)
+            if(safe) {
                 return limboPiece;
+            }
         }
 
         //No safe moves
@@ -230,39 +229,32 @@ public class QuartoGameState {
             for(int i=0;i<5;i++) {
                 rows.add(new ArrayList<int[]>());
                 cols.add(new ArrayList<int[]>());
-                if(i<2)
+                if(i<2) {
                     diags.add(new ArrayList<int[]>());
+                }
             }
 
             for (int[] square : this.freeSquares) {
                 rows.get(square[0]).add(square);
                 cols.get(square[1]).add(square);
-                if (square[0] == square[1])
+                if (square[0] == square[1]) {
                     diags.get(0).add(square);
-                else if (square[0] + square[1] == 4)
+                } else if (square[0] + square[1] == 4) {
                     diags.get(1).add(square);
+                }
             }
 
             for(int i=0;i<5;i++) {
-                if(rows.get(i).size() == 1 &&
-                        !possibleWinSquares.contains(rows.get(i).get(0))) {
+                if(rows.get(i).size() == 1) {
                     possibleWinSquares.addAll(rows.get(i));
                 }
-
-                if(cols.get(i).size() == 1 &&
-                        !possibleWinSquares.contains(cols.get(i).get(0))) {
+                else if(cols.get(i).size() == 1) {
                     possibleWinSquares.addAll(cols.get(i));
                 }
-
-                if(i < 2 && diags.get(i).size() == 1 &&
-                        !possibleWinSquares.contains(diags.get(i).get(0))) {
+                else if(i < 2 && diags.get(i).size() == 1) {
                     possibleWinSquares.addAll(diags.get(i));
                 }
             }
-
-            rows.clear();
-            cols.clear();
-            diags.clear();
         }
 
         return possibleWinSquares;
