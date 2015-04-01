@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 
 public class QuartoGameState {
@@ -11,6 +12,7 @@ public class QuartoGameState {
     public ArrayList<int[]> freeSquares;
     public ArrayList<QuartoPiece> freePieces;
     public HashMap<String, QuartoGameTransition> transitions;
+    private List<int[]> possibleWinSquares;
 
     public int value;
     public int alpha;
@@ -60,6 +62,8 @@ public class QuartoGameState {
         this.value = this.isMaxState ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 
         this.transitions = new HashMap<String, QuartoGameTransition>();
+
+        this.possibleWinSquares = null; //Only bother running getTestSquares() if we need it
     }
 
     /**
@@ -160,45 +164,100 @@ public class QuartoGameState {
         }
         else {
             value = 0;
-            // FIXME/OPTIMIZE: this is just hacky and awful
-            for(int[] square : this.freeSquares) {
-                QuartoBoard tmpBoard = new QuartoBoard(this.board);
-                tmpBoard.insertPieceOnBoard(square[0], square[1], limboPiece.getPieceID());
+            //Minor optimization, don't bother checking if we wouldn't have
+            //a board with 5 or more pieces
+            if(this.freeSquares.size() <= 21) {
+                for (int[] square : this.getTestSquares()) {
+                    QuartoBoard tmpBoard = new QuartoBoard(this.board);
+                    tmpBoard.insertPieceOnBoard(square[0], square[1], limboPiece.getPieceID());
 
-                if(this.hasQuarto(tmpBoard)) {
-                    value = this.isMaxState ? 27 : -27;
-                    break;
+                    QuartoGameState state = getRegisteredState(tmpBoard, alpha, beta, !this.isMaxState);
+
+                    if (state.hasQuarto()) {
+                        value = state.isMaxState ? -27 : 27;
+                        break;
+                    }
                 }
             }
         }
     }
 
     /**
-     * @return       boolean
+     * Tries to find a piece that cannot be placed on the
+     * board to win.
+     *
+     * @return Proposed QuartoPiece
      */
-    // TODO: Get rid of this method
-    public boolean hasQuarto(QuartoBoard tmpBoard)
-    {
-        //loop through rows
-        for(int i = 0; i < tmpBoard.getNumberOfRows(); i++) {
-            if (tmpBoard.checkRow(i)) {
-                return true;
+    public QuartoPiece getSafePiece() {
+        boolean safe;
+        for(QuartoPiece limboPiece : this.freePieces) {
+            safe = true;
+            for(int[] square : this.getTestSquares()) {
+                QuartoBoard tmpBoard = new QuartoBoard(this.board);
+                tmpBoard.insertPieceOnBoard(square[0], square[1], limboPiece.getPieceID());
+
+                QuartoGameState state = getRegisteredState(tmpBoard, alpha, beta, this.isMaxState);
+
+                if (state.hasQuarto()) {
+                    safe = false;
+                }
+            }
+
+            if(safe) {
+                return limboPiece;
             }
         }
 
-        //loop through columns
-        for(int i = 0; i < tmpBoard.getNumberOfColumns(); i++) {
-            if (tmpBoard.checkColumn(i)) {
-                return true;
+        //No safe moves
+        return this.board.getPiece(this.board.chooseNextPieceNotPlayed());
+    }
+
+    /**
+     * Evaluation of free squares to see which are the last
+     * square needed in a possible combination.
+     *
+     * @return A list of nodes that need to be checked
+     */
+    private List<int[]> getTestSquares() {
+        if(this.possibleWinSquares == null) {
+            this.possibleWinSquares = new ArrayList<int[]>();
+
+            List<List<int[]>> rows = new ArrayList<List<int[]>>();
+            List<List<int[]>> cols = new ArrayList<List<int[]>>();
+            List<List<int[]>> diags = new ArrayList<List<int[]>>();
+
+            for(int i=0;i<5;i++) {
+                rows.add(new ArrayList<int[]>());
+                cols.add(new ArrayList<int[]>());
+                if(i<2) {
+                    diags.add(new ArrayList<int[]>());
+                }
+            }
+
+            for (int[] square : this.freeSquares) {
+                rows.get(square[0]).add(square);
+                cols.get(square[1]).add(square);
+                if (square[0] == square[1]) {
+                    diags.get(0).add(square);
+                } else if (square[0] + square[1] == 4) {
+                    diags.get(1).add(square);
+                }
+            }
+
+            for(int i=0;i<5;i++) {
+                if(rows.get(i).size() == 1) {
+                    possibleWinSquares.addAll(rows.get(i));
+                }
+                else if(cols.get(i).size() == 1) {
+                    possibleWinSquares.addAll(cols.get(i));
+                }
+                else if(i < 2 && diags.get(i).size() == 1) {
+                    possibleWinSquares.addAll(diags.get(i));
+                }
             }
         }
 
-        //check Diagonals
-        if (tmpBoard.checkDiagonals()) {
-            return true;
-        }
-
-        return false;
+        return possibleWinSquares;
     }
 
     /**

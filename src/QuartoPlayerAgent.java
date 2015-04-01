@@ -3,7 +3,7 @@ import java.util.Random;
 
 public class QuartoPlayerAgent extends QuartoAgent {
     private int maxDepth = -1;
-    public final int NODES_PER_SECOND = 1500; //TO-DO Benchmark NODES_PER_SECOND
+    public final int NODES_PER_SECOND = 1000; //TO-DO Benchmark NODES_PER_SECOND
     public int currentDepth = 1;
     public QuartoPiece pieceToGiveMini = null;
 
@@ -184,12 +184,18 @@ public class QuartoPlayerAgent extends QuartoAgent {
      */
     @Override
     protected String pieceSelectionAlgorithm() {
-        if(this.pieceToGiveMini != null){
-            return String.format("%5s", this.pieceToGiveMini.binaryStringRepresentation());
+        if(this.pieceToGiveMini == null){
+            //Should only occur on first move of a game
+            QuartoGameState tmpState = QuartoGameState.getRegisteredState(
+                    this.quartoBoard,
+                    Integer.MAX_VALUE,
+                    Integer.MIN_VALUE,
+                    true
+            );
+
+            this.pieceToGiveMini = tmpState.getSafePiece();
         }
-        else {
-            return String.format("%5s", Integer.toBinaryString(
-                            this.quartoBoard.chooseNextPieceNotPlayed())).replace(' ', '0');
-        }
+
+        return String.format("%5s", this.pieceToGiveMini.binaryStringRepresentation());
     }
 }
