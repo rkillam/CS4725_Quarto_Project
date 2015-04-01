@@ -7,22 +7,26 @@ import java.util.Random;
 class SearchSpaceThread implements Runnable {
     public QuartoPlayerAgent agent;
     public boolean rootLocked;
+    public boolean done;
     public QuartoPiece limboPiece;
 
     public SearchSpaceThread(QuartoPlayerAgent agent) {
         this.agent = agent;
         this.rootLocked = false;
+        this.done = false;
         this.limboPiece = null;
     }
 
     @Override
     public void run() {
+        this.done = false;
         agent.searchGameTree(
                 agent.rootState,
                 this.limboPiece,
                 agent.calcSearchableDepth(agent.rootState),
                 agent.currentDepth++
         );
+        this.done = true;
     }
 }
 
@@ -31,16 +35,55 @@ class CleanupThread implements Runnable {
     private int[] placedPieceLocation;
     private int numberOfFreePieces;
 
+    public boolean done;
+
     public CleanupThread(QuartoPlayerAgent agent) {
-        System.out.println(agent.rootState.bestTransition);
         this.placedPiece = agent.rootState.bestTransition.placedPiece;
         this.placedPieceLocation = agent.rootState.bestTransition.placedPieceLocation;
         this.numberOfFreePieces = agent.rootState.freePieces.size();
+
+        this.done = false;
     }
 
     @Override
     public void run() {
-        QuartoGameState.pruneStates(this.placedPiece, this.placedPieceLocation, this.numberOfFreePieces);
+        List<String> statesToPrune = new ArrayList<String>();
+        for(Map.Entry<String, QuartoGameState> stateMap : QuartoGameState.getIterator()) {
+            String key = stateMap.getKey();
+            QuartoGameState state = stateMap.getValue();
+
+            // Are there enough pieces on the board for us to be able to reach this state?
+            boolean enoughPiecesPlayed = state.freePieces.size() <= numberOfFreePieces;
+
+            QuartoPiece pieceInSquare = state.board.getPieceOnPosition(
+                    placedPieceLocation[0],
+                    placedPieceLocation[1]
+            );
+
+            // Is the piece we placed in the right square
+            boolean isPieceInSquare = pieceInSquare != null && pieceInSquare.getPieceID() == placedPiece.getPieceID();
+
+            /**
+             * A state is unreachable from our current root if:
+             *      It has fewer pieces on the board == has more free pieces
+             *      It does not have the placedPiece in the placedPieceLocation
+             */
+            if(!enoughPiecesPlayed || !isPieceInSquare) {
+                statesToPrune.add(key);
+                System.out.println("About to prune");
+                state.board.printBoardState();
+            }
+        }
+
+        System.out.println("\n\n\n");
+
+        for(String stateKey : statesToPrune) {
+            QuartoGameState.removeState(stateKey);
+        }
+
+//        QuartoGameState.pruneStates(this.placedPiece, this.placedPieceLocation, this.numberOfFreePieces);
+//        QuartoGameState.clearStates();
+        this.done = true;
     }
 }
 
@@ -112,6 +155,8 @@ public class QuartoPlayerAgent extends QuartoAgent {
      * @param rootDepth The current root nodes depth in relation to the original tree. Used to ensure unique evaluations.
      */
     public void searchGameTree(QuartoGameState curState, QuartoPiece limboPiece, int levelsLeft, int rootDepth) {
+        curState.resetMinimax();
+
         if(levelsLeft == 0 || curState.hasQuarto() || curState.board.checkIfBoardIsFull()) {
             curState.evaluate(limboPiece);
         }
@@ -123,12 +168,18 @@ public class QuartoPlayerAgent extends QuartoAgent {
                 // We need this check because the transition generator might return null if
                 // the last state it tries to generate has already been visited
                 if(state != null) {
-                    state.resetMinimax();
                     searchGameTree(state, transition.nextPiece, levelsLeft - 1, rootDepth);
 
                     if (curState.isMaxState) {
                         if (state.value > curState.value) {
                             curState.bestTransition = transition;
+
+                            if(curState.getHash().equals(this.rootState.getHash())) {
+                                System.out.println("Setting root state's best trans as max");
+                                this.rootState.bestTransition.toState.board.printBoardState();
+                                System.out.println("curState's best trans board");
+                                curState.bestTransition.toState.board.printBoardState();
+                            }
 
                             if (state.value > 0) {
                                 curState.value = state.value - 1;
@@ -159,6 +210,19 @@ public class QuartoPlayerAgent extends QuartoAgent {
                     } else {
                         if (state.value < curState.value) {
                             curState.bestTransition = transition;
+
+                            if(curState.getHash().equals(this.rootState.getHash())) {
+                                System.out.println("Setting root state's best trans as mini");
+                                System.out.println("Root's board state");
+                                this.rootState.board.printBoardState();
+                                System.out.printf("\nPutting piece: %s in %d,%d and giving piece: %s\n\n",
+                                        this.rootState.bestTransition.placedPiece.binaryStringRepresentation(),
+                                        this.rootState.bestTransition.placedPieceLocation[0],
+                                        this.rootState.bestTransition.placedPieceLocation[1],
+                                        this.rootState.bestTransition.nextPiece.binaryStringRepresentation()
+                                );
+                                this.rootState.bestTransition.toState.board.printBoardState();
+                            }
 
                             if (state.value > 0) {
                                 curState.value = state.value - 1;
@@ -198,6 +262,8 @@ public class QuartoPlayerAgent extends QuartoAgent {
      */
     @Override
     protected String moveSelectionAlgorithm(int pieceID) {
+//        QuartoGameState.clearStates();
+
         /*
          * NOTE: The new game state is defined as a mini state because states
          *       are defined as being the result of a player's decisions
@@ -214,8 +280,37 @@ public class QuartoPlayerAgent extends QuartoAgent {
                 false
         );
 
+//        this.searchGameTree(
+//                this.rootState,
+//                this.rootState.board.getPiece(pieceID),
+//                this.calcSearchableDepth(this.rootState),
+//                this.currentDepth++
+//        );
+
         this.searchSpaceThread.limboPiece = this.rootState.board.getPiece(pieceID);
         this.searchSpaceThread.run();
+
+        while(!this.searchSpaceThread.done){}
+//        try {
+//            Thread.sleep(this.timeLimitForResponse - (COMMUNICATION_DELAY * 10));
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+
+        if(this.rootState.bestTransition == null) {
+            System.out.println("best transition is null; has " + this.rootState.transitions.size() + " transitions");
+            this.rootState.board.printBoardState();
+        }
+
+        System.out.println("Root's board state");
+        this.rootState.board.printBoardState();
+        System.out.printf("\nPutting piece: %s in %d,%d and giving piece: %s\n\n",
+                this.rootState.bestTransition.placedPiece.binaryStringRepresentation(),
+                this.rootState.bestTransition.placedPieceLocation[0],
+                this.rootState.bestTransition.placedPieceLocation[1],
+                this.rootState.bestTransition.nextPiece.binaryStringRepresentation()
+        );
+        this.rootState.bestTransition.toState.board.printBoardState();
 
         return this.rootState.bestTransition.placedPieceLocation[0] +
                 "," +
@@ -230,12 +325,22 @@ public class QuartoPlayerAgent extends QuartoAgent {
         if(this.rootState != null) {
             String retPiece = this.rootState.bestTransition.nextPiece.binaryStringRepresentation();
 
-            new CleanupThread(this).run();
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            QuartoGameState.clearStates();
+//            CleanupThread ct = new CleanupThread(this);
+//            ct.run();
+//
+//            try {
+//                Thread.sleep(1000);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+//
+//            System.out.println("Done sleeping");
+//
+//            if(!ct.done) {System.out.println("Not done pruning");}
+//
+//            while(!ct.done){}
+            System.out.println("done ct");
 
             return String.format("%5s", retPiece);
         }

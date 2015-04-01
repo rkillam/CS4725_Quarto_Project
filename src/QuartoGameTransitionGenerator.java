@@ -58,7 +58,10 @@ public class QuartoGameTransitionGenerator implements Iterable<QuartoGameTransit
 
                 nextPiece = pieces.next();
 
-                return new QuartoGameTransition(newState, limboPiece, nextSquare, nextPiece);
+                QuartoGameTransition newQGT = new QuartoGameTransition(newState, limboPiece, nextSquare, nextPiece);
+                newState.transitions.put(newQGT.getHashCode(), newQGT);
+
+                return newQGT;
             }
 
             @Override

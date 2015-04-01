@@ -76,38 +76,10 @@ public class QuartoGameState {
         registeredStatesBusy = false;
     }
 
-    public static void pruneStates(QuartoPiece placedPiece, int[] placedPieceLocation, int numberOfFreePieces) {
+    public static void removeState(String key) {
         while(registeredStatesBusy){}
         registeredStatesBusy = true;
-        Iterator<Map.Entry<String, QuartoGameState>> stateMapIterator = registeredStates.entrySet().iterator();
-
-        while(stateMapIterator.hasNext()) {
-            Map.Entry<String, QuartoGameState> stateMap = stateMapIterator.next();
-            String key = stateMap.getKey();
-            QuartoGameState state = stateMap.getValue();
-
-            // Are there enough pieces on the board for us to be able to reach this state?
-            boolean enoughPiecesPlayed = state.freePieces.size() <= numberOfFreePieces;
-
-            QuartoPiece pieceInSquare = state.board.getPieceOnPosition(
-                    placedPieceLocation[0],
-                    placedPieceLocation[1]
-            );
-
-            // Is the piece we placed in the right square
-            boolean isPieceInSquare = pieceInSquare != null && pieceInSquare.getPieceID() == placedPiece.getPieceID();
-
-            /**
-             * A state is unreachable from our current root if:
-             *      It has fewer pieces on the board == has more free pieces
-             *      It does not have the placedPiece in the placedPieceLocation
-             */
-            if(!enoughPiecesPlayed || !isPieceInSquare) {
-                stateMapIterator.remove();
-            }
-        }
-
-
+        registeredStates.remove(key);
         registeredStatesBusy = false;
     }
 
