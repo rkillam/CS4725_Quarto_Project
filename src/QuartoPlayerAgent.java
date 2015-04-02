@@ -89,7 +89,7 @@ class CleanupThread implements Runnable {
 
 public class QuartoPlayerAgent extends QuartoAgent {
     private int maxDepth = -1;
-    public final int NODES_PER_SECOND = 1500; //TO-DO Benchmark NODES_PER_SECOND
+    public final int NODES_PER_SECOND = 1000; //TO-DO Benchmark NODES_PER_SECOND
     public int currentDepth = 1;
     public QuartoGameState rootState = null;
 
@@ -322,8 +322,9 @@ public class QuartoPlayerAgent extends QuartoAgent {
      */
     @Override
     protected String pieceSelectionAlgorithm() {
+        QuartoPiece retPiece;
         if(this.rootState != null) {
-            String retPiece = this.rootState.bestTransition.nextPiece.binaryStringRepresentation();
+            retPiece = this.rootState.bestTransition.nextPiece;
 
             QuartoGameState.clearStates();
 //            CleanupThread ct = new CleanupThread(this);
@@ -341,12 +342,19 @@ public class QuartoPlayerAgent extends QuartoAgent {
 //
 //            while(!ct.done){}
             System.out.println("done ct");
-
-            return String.format("%5s", retPiece);
         }
         else {
-            return String.format("%5s", Integer.toBinaryString(
-                            this.quartoBoard.chooseNextPieceNotPlayed())).replace(' ', '0');
+            //Should only occur on first move of a game
+            QuartoGameState tmpState = QuartoGameState.getRegisteredState(
+                    this.quartoBoard,
+                    Integer.MAX_VALUE,
+                    Integer.MIN_VALUE,
+                    true
+            );
+
+            retPiece = tmpState.getSafePiece();
         }
+
+        return String.format("%5s", retPiece.binaryStringRepresentation());
     }
 }
